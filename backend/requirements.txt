@@ -18,5 +18,5 @@ javalang>=0.13.0
 esprima>=4.0.1
 
 # Testing
-pytest>=8.0.0
+pytest>=9.1.1
 pytest-asyncio>=0.23.0
