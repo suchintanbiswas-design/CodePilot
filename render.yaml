@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: codepilot-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - fromGroup: codepilot-env
+    healthCheckPath: /health

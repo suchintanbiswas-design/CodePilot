@@ -1,0 +1,6 @@
+* @codepilot-team
+/backend/ @backend-team
+/frontend/ @frontend-team
+/docker-compose*.yml @devops-team
+/Makefile @devops-team
+/.github/ @devops-team

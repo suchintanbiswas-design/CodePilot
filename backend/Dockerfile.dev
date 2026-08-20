@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY start.sh .
+RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
+
+ENTRYPOINT ["/bin/bash", "-c", "cat /app/start.sh | tr -d '\\r' > /tmp/start.sh && bash /tmp/start.sh \"$@\"", "--"]
+# The source code will be mounted as a volume in docker-compose.yml
+EXPOSE 8000
