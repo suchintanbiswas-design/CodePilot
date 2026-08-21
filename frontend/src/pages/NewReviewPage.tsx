@@ -10,7 +10,7 @@ import { ROUTES } from '@/config/routes';
 import { useToast } from '@/components/ui/Toast';
 
 export function NewReviewPage() {
-  const [activeTab, setActiveTab] = useState<'paste' | 'upload' | 'github'>('paste');
+  const [activeTab, setActiveTab] = useState<'paste' | 'upload'>('paste');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { error, success } = useToast();
@@ -25,9 +25,6 @@ export function NewReviewPage() {
 
   // Upload state
   const [file, setFile] = useState<File | null>(null);
-
-  // GitHub state
-  const [repoUrl, setRepoUrl] = useState('');
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -47,20 +44,20 @@ export function NewReviewPage() {
           language_id: finalLanguage || undefined, // undefined sends as omitted
           source_code: code
         });
-      } else if (activeTab === 'github') {
-        response = await reviewService.create({
-          title,
-          language_id: finalLanguage || undefined,
-          repo_url: repoUrl
-        });
       } else if (activeTab === 'upload') {
         if (!file) {
           error('File is required');
           setIsLoading(false);
           return;
         }
+        const fileContent = await file.text();
         const formData = new FormData();
-        const reqData: any = { title };
+        const reqData: any = { 
+          title,
+          source_code: fileContent,
+          file_name: file.name,
+          file_size: file.size
+        };
         if (finalLanguage) {
           reqData.language_id = finalLanguage;
         }
@@ -84,12 +81,6 @@ export function NewReviewPage() {
   const handlePreflightAndSubmit = async () => {
     if (!title) {
       error('Title is required');
-      return;
-    }
-
-    if (activeTab === 'github') {
-      // GitHub repos handle per-file detection, so no need for pre-flight
-      await doSubmit(language);
       return;
     }
 
@@ -180,7 +171,7 @@ export function NewReviewPage() {
 
           <div className="border-b border-[var(--color-border)]">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              {['paste', 'upload', 'github'].map((tab) => (
+              {['paste', 'upload'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
@@ -196,7 +187,7 @@ export function NewReviewPage() {
                     }
                   `}
                 >
-                  {tab === 'paste' ? 'Paste Code' : tab === 'upload' ? 'Upload File' : 'GitHub Repo'}
+                  {tab === 'paste' ? 'Paste Code' : 'Upload File'}
                 </button>
               ))}
             </nav>
@@ -242,19 +233,6 @@ export function NewReviewPage() {
                   <p className="text-xs leading-5 text-[var(--color-text-tertiary)] mt-2">
                     Code files up to 2MB
                   </p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'github' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text)] mb-2">Repository URL</label>
-                  <Input 
-                    placeholder="https://github.com/username/repo" 
-                    value={repoUrl} 
-                    onChange={(e) => setRepoUrl(e.target.value)} 
-                  />
                 </div>
               </div>
             )}

@@ -17,7 +17,8 @@ export function HistoryPage() {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [reviews, setReviews] = useState<ReviewSummary[]>([]);
+  const [allReviews, setAllReviews] = useState<ReviewSummary[]>([]);
+  const [displayedReviews, setDisplayedReviews] = useState<ReviewSummary[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [total, setTotal] = useState(0);
   
@@ -41,17 +42,8 @@ export function HistoryPage() {
       const response = await reviewService.list({
         skip: isLoadMore ? skip : 0,
         limit: LIMIT,
-        language: language || undefined,
-        maxScore: minScore ? minScore : undefined, // Assuming maxScore can be used for scoring bounds or we can adjust backend
-        // In real backend, we'd pass dateRange, techDebt, debouncedSearch, minScore
       });
       
-      // Mapping Review to ReviewSummary if needed, or if backend returns Review Summary directly
-      // Let's assume reviewService.list returns Review[] and we map it, or backend already matches ReviewSummary format.
-      // Based on reviewService.list signature: returns {items: Review[], total: number}
-      // Wait, let's map Review to ReviewSummary or just use as is since types might differ.
-      
-      // The instruction says "Replace MOCK_HISTORY with a real useEffect fetching from reviewService.list(...)".
       const mappedItems = response.items.map((r: any) => ({
         id: r.id,
         repositoryUrl: r.repo_url || r.title || 'Unknown',
@@ -61,12 +53,14 @@ export function HistoryPage() {
         issuesFound: r.issues?.length || 0,
         criticalIssues: r.issues?.filter((i: any) => i.severity === 'Critical')?.length || 0,
         createdAt: r.created_at || r.updated_at || new Date().toISOString(),
+        language: r.language?.name || '',
+        techDebtScore: r.metadata?.tech_debt ?? r.tech_debt ?? r.review_metadata?.tech_debt ?? 0,
       }));
 
       if (isLoadMore) {
-        setReviews(prev => [...prev, ...mappedItems]);
+        setAllReviews(prev => [...prev, ...mappedItems]);
       } else {
-        setReviews(mappedItems);
+        setAllReviews(mappedItems);
       }
       setTotal(response.total);
     } catch (err) {
@@ -80,12 +74,61 @@ export function HistoryPage() {
   useEffect(() => {
     setSkip(0);
     fetchReviews(false);
-  }, [debouncedSearch, language, minScore, dateRange, techDebt]);
+  }, []);
+
+  useEffect(() => {
+    let filtered = [...allReviews];
+
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(r => r.repositoryUrl.toLowerCase().includes(query));
+    }
+
+    if (language) {
+      filtered = filtered.filter(r => (r as any).language === language);
+    }
+
+    if (minScore) {
+      filtered = filtered.filter(r => r.overallScore >= minScore);
+    }
+
+    if (dateRange) {
+      const now = new Date();
+      const days = parseInt(dateRange);
+      filtered = filtered.filter(r => {
+         const reviewDate = new Date(r.createdAt);
+         // Compare properly without timezone bugs
+         const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
+         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+         return diffDays <= days;
+      });
+    }
+
+    if (techDebt) {
+      filtered = filtered.filter(r => {
+         const score = (r as any).techDebtScore || 0;
+         let category = 'Low';
+         if (score > 75) category = 'High';
+         else if (score > 50) category = 'Medium';
+         return category === techDebt;
+      });
+    }
+
+    setDisplayedReviews(filtered);
+  }, [allReviews, debouncedSearch, language, minScore, dateRange, techDebt]);
 
   const handleLoadMore = () => {
     const newSkip = skip + LIMIT;
     setSkip(newSkip);
     fetchReviews(true);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setLanguage('');
+    setMinScore(undefined);
+    setDateRange('');
+    setTechDebt('');
   };
 
   return (
@@ -120,21 +163,26 @@ export function HistoryPage() {
       {showFilters && (
         <Card className="p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 fade-in duration-200">
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Language</label>
+            <label htmlFor="language-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Language</label>
             <select 
+              id="language-filter"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary-500)]"
             >
               <option value="">All Languages</option>
-              <option value="TypeScript">TypeScript</option>
               <option value="Python">Python</option>
-              <option value="Go">Go</option>
+              <option value="Java">Java</option>
+              <option value="C">C</option>
+              <option value="C++">C++</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="TypeScript">TypeScript</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Min Score</label>
+            <label htmlFor="min-score-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Min Score</label>
             <select 
+              id="min-score-filter"
               value={minScore || ''}
               onChange={(e) => setMinScore(e.target.value ? Number(e.target.value) : undefined)}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary-500)]"
@@ -146,8 +194,9 @@ export function HistoryPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Date Range</label>
+            <label htmlFor="date-range-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Date Range</label>
             <select 
+              id="date-range-filter"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary-500)]"
@@ -159,8 +208,9 @@ export function HistoryPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Tech Debt</label>
+            <label htmlFor="tech-debt-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Tech Debt</label>
             <select 
+              id="tech-debt-filter"
               value={techDebt}
               onChange={(e) => setTechDebt(e.target.value)}
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary-500)]"
@@ -171,6 +221,9 @@ export function HistoryPage() {
               <option value="Low">Low</option>
             </select>
           </div>
+          <div className="md:col-span-4 flex justify-end">
+            <Button variant="outline" size="sm" onClick={resetFilters}>Reset Filters</Button>
+          </div>
         </Card>
       )}
 
@@ -180,14 +233,14 @@ export function HistoryPage() {
             <Skeleton key={i} className="h-20 w-full rounded-xl" />
           ))}
         </div>
-      ) : reviews.length === 0 ? (
+      ) : displayedReviews.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-[var(--color-border)] rounded-2xl">
           <div className="bg-[var(--color-surface-secondary)] p-4 rounded-full mb-4">
             <History className="h-12 w-12 text-[var(--color-text-tertiary)]" />
           </div>
           <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">No reviews found</h3>
           <p className="text-[var(--color-text-secondary)] max-w-md">
-            {debouncedSearch ? "Try adjusting your search or filters." : "You haven't run any code reviews yet."}
+            {debouncedSearch || language || minScore || dateRange || techDebt ? "Try adjusting your search or filters." : "You haven't run any code reviews yet."}
           </p>
         </div>
       ) : (
@@ -204,7 +257,7 @@ export function HistoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
-                {reviews.map((review) => (
+                {displayedReviews.map((review) => (
                   <tr key={review.id} className="hover:bg-[var(--color-surface-secondary)]/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -270,7 +323,7 @@ export function HistoryPage() {
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Delete" onClick={(e) => {
                           e.preventDefault();
                           reviewService.delete(review.id).then(() => {
-                             setReviews(prev => prev.filter(r => r.id !== review.id));
+                             setAllReviews(prev => prev.filter(r => r.id !== review.id));
                              setTotal(prev => prev - 1);
                           }).catch(console.error);
                         }}>
@@ -285,12 +338,12 @@ export function HistoryPage() {
           </div>
           
           <div className="p-4 border-t border-[var(--color-border)] flex items-center justify-between">
-            <span className="text-sm text-[var(--color-text-secondary)]">Showing {reviews.length} of {total} reviews</span>
+            <span className="text-sm text-[var(--color-text-secondary)]">Showing {displayedReviews.length} of {total} reviews</span>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
-                disabled={reviews.length >= total || loadingMore} 
+                disabled={allReviews.length >= total || loadingMore} 
                 onClick={handleLoadMore}
               >
                 {loadingMore ? 'Loading...' : 'Load More'}

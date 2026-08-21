@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { 
   PlusCircle, Code, CheckCircle, 
-  FileCode2, TrendingUp, Zap, Sparkles, FolderGit2
+  FileCode2, TrendingUp, Zap, Sparkles
 } from 'lucide-react';
 import { Review } from '@/types/review';
 import { formatDate } from '@/lib/utils';
@@ -247,10 +247,6 @@ export function DashboardPage() {
               <CardTitle className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 mt-2">
-              <Button variant="outline" className="w-full justify-start text-left font-normal" onClick={() => navigate(ROUTES.NEW_REVIEW)}>
-                <FolderGit2 className="mr-3 text-[var(--color-text-secondary)]" size={16} />
-                Review GitHub Repository
-              </Button>
               <Button variant="outline" className="w-full justify-start text-left font-normal" onClick={() => navigate(ROUTES.NEW_REVIEW)}>
                 <FileCode2 className="mr-3 text-[var(--color-text-secondary)]" size={16} />
                 Analyze Local Snippet

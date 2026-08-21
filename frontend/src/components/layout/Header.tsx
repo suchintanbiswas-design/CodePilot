@@ -2,7 +2,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { ROUTES } from '@/config/routes';
-import { Sun, Moon, LogOut, User, Settings, Shield, Search } from 'lucide-react';
+import { Sun, Moon, LogOut, User, Settings, Shield } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { NotificationPopover } from './NotificationPopover';
@@ -44,16 +44,7 @@ export function Header() {
         </h1>
       </div>
 
-      <div className="flex-1 max-w-xl px-8 hidden md:block">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" size={18} />
-          <input
-            type="text"
-            placeholder="Search reviews, files, or issues..."
-            className="w-full bg-[var(--color-surface-secondary)] border border-transparent rounded-[var(--radius-full)] pl-10 pr-4 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-1 focus:ring-[var(--color-primary-500)] transition-all"
-          />
-        </div>
-      </div>
+
 
       <div className="flex items-center gap-3">
         <button

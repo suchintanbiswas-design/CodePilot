@@ -1,23 +1,32 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { Suspense } from 'react';
+﻿import { render, screen, waitFor } from '@testing-library/react';
 import App from '@/App';
+import { describe, it, expect } from 'vitest';
 
-// We mock App components if we want to specifically test routing inside a MemoryRouter, 
-// since App already wraps everything in a BrowserRouter. But per instructions we will test App.
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});
+
 describe('App', () => {
   it('renders without crashing', () => {
-    // If App had no internal router, we would wrap it here in MemoryRouter.
-    // For safety, we just render App directly.
     render(<App />);
-    expect(screen.getByText(/CodePilot/i)).toBeInDocument(); // from fallback loader
+    expect(screen.getByText(/CodePilot/i)).toBeInTheDocument();
   });
 
   it('redirects unauthenticated user to login', async () => {
     render(<App />);
     
     await waitFor(() => {
-      expect(screen.getByText(/Sign in to your account/i)).toBeInDocument();
+      expect(screen.getByText(/Sign in to your account/i)).toBeInTheDocument();
     });
   });
 });
