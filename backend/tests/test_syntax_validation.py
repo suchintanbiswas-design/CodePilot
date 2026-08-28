@@ -153,6 +153,115 @@ class TestTypeScript:
         issues = validator.validate(code, "TypeScript")
         assert len(issues) >= 1
         assert issues[0]["severity"] == "Critical"
+    def test_typescript_casts_valid(self, validator):
+        code = """
+const a = JSON.parse("{}") as any;
+const b = JSON.parse("{}") as User;
+const c = JSON.parse("{}") as unknown;
+const d = JSON.parse("{}") as any[];
+const e = JSON.parse("{}") as Array<string>;
+const f = <any>value;
+"""
+        issues = validator.validate(code, "TypeScript")
+        assert len(issues) == 0
+
+    def test_typescript_non_null_assertions_valid(self, validator):
+        code = """
+const a = user!.name;
+const b = users![0];
+const c = user!.profile!.name;
+const d = document.getElementById("app")!;
+const e = fn()!;
+
+const v1 = !value;
+const v2 = value != null;
+const v3 = value !== null;
+const v4 = "user!.name";
+// user!.name
+"""
+        issues = validator.validate(code, "TypeScript")
+        assert len(issues) == 0
+
+    def test_typescript_optional_chaining_valid(self, validator):
+        code = """
+const a = user?.name;
+const b = user?.profile?.name;
+const c = users?.[0];
+const d = fn?.();
+const e = obj?.method?.();
+const f = user?.profile!.name;
+const g = user!.profile?.name;
+
+const t1 = condition ? one : two;
+const t2 = obj.name;
+const t3 = value != null;
+const t4 = value !== null;
+
+const text = "user?.name";
+// user?.name
+"""
+        issues = validator.validate(code, "TypeScript")
+        assert len(issues) == 0
+
+    def test_typescript_union_types_valid(self, validator):
+        code = '''
+function getUser(): User | null {
+    return null;
+}
+
+function test(value: string | number): void {
+}
+
+let result: User | undefined;
+let item: A & B;
+
+function load(): Promise<User> | null {
+    return null;
+}
+'''
+        issues = validator.validate(code, 'TypeScript')
+        assert len(issues) == 0
+
+    def test_typescript_full_e2e_valid(self, validator):
+        code = """
+interface User {
+    id: number;
+    name: string;
+}
+
+const rawData: any = fetchData();
+
+function processUser(user: any): any {
+    return user;
+}
+
+class ApiResponse {
+    data: any;
+}
+
+const response = JSON.parse("{}") as any;
+
+const typedResponse = JSON.parse("{}") as User;
+const unknownResponse = JSON.parse("{}") as unknown;
+
+function safeProcess(value: unknown): unknown {
+    return value;
+}
+
+const companyName = "CodePilot";
+const anyValue = 42;
+
+// const fake: any = something;
+const text = "this string contains any and as any";
+
+interface User2 { id: number; }
+type Result = string;
+const x: User = value;
+function test(x: string): number { return 1; }
+class Example { value: number; }
+"""
+        issues = validator.validate(code, "TypeScript")
+        assert len(issues) == 0
 
 
 # ---------------------------------------------------------------

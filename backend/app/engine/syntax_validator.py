@@ -337,16 +337,121 @@ class SyntaxValidator:
 
     def _strip_typescript_annotations(self, code: str) -> str:
         """Remove TypeScript type annotations so esprima can parse the JS subset."""
-        # Remove type annotations after : in parameters and declarations
-        code = re.sub(r':\s*(?:string|number|boolean|any|void|never|unknown|object|null|undefined)(?:\[\])?', '', code)
-        # Remove generic type parameters <T>, <T, U>
+        
+        # 1. Strip postfix non-null assertions (!) outside strings/comments
+        masked_chars = list(code)
+        i, n, state = 0, len(code), 'NORMAL'
+        while i < n:
+            c = code[i]
+            if state == 'NORMAL':
+                if c == '/' and i + 1 < n and code[i+1] == '/':
+                    state, masked_chars[i], masked_chars[i+1], i = 'SL_COMMENT', ' ', ' ', i + 2
+                    continue
+                elif c == '/' and i + 1 < n and code[i+1] == '*':
+                    state, masked_chars[i], masked_chars[i+1], i = 'ML_COMMENT', ' ', ' ', i + 2
+                    continue
+                elif c in '"\'`':
+                    state, masked_chars[i] = 'STRING_' + c, ' '
+            elif state == 'SL_COMMENT':
+                if c == '\n':
+                    state = 'NORMAL'
+                else:
+                    masked_chars[i] = ' '
+            elif state == 'ML_COMMENT':
+                if c == '*' and i + 1 < n and code[i+1] == '/':
+                    state, masked_chars[i], masked_chars[i+1], i = 'NORMAL', ' ', ' ', i + 2
+                    continue
+                elif c != '\n':
+                    masked_chars[i] = ' '
+            elif state.startswith('STRING_'):
+                q = state[-1]
+                if c == '\\':
+                    masked_chars[i] = ' '
+                    if i + 1 < n:
+                        masked_chars[i+1], i = ' ', i + 2
+                        continue
+                elif c == q:
+                    state, masked_chars[i] = 'NORMAL', ' '
+                elif c != '\n':
+                    masked_chars[i] = ' '
+            i += 1
+        masked_code = "".join(masked_chars)
+        
+        # Now find non-null assertions on the masked code and replace in the real code
+        pattern = re.compile(r'(?<=[a-zA-Z0-9_\]\)!])!(?!\s*=)')
+        code_chars = list(code)
+        for match in pattern.finditer(masked_code):
+            code_chars[match.start()] = ' '
+            
+        # Optional chaining ?.[ and ?.(
+        pattern_chain1 = re.compile(r'\?\.(?=[\[\(])')
+        for match in pattern_chain1.finditer(masked_code):
+            code_chars[match.start()] = ' '
+            code_chars[match.start()+1] = ' '
+            
+        # Optional chaining ?.identifier
+        pattern_chain2 = re.compile(r'\?(?=\.[a-zA-Z_$])')
+        for match in pattern_chain2.finditer(masked_code):
+            code_chars[match.start()] = ' '
+            
+        code = "".join(code_chars)
+
+        # 2. Convert 'interface' to 'class' so esprima parses the body
+        code = re.sub(r'\binterface\b', 'class', code)
+        
+        # 3. Convert 'type T =' to 'const __dummy =' so esprima parses it as an expression
+        code = re.sub(r'(?:export\s+)?\btype\s+[a-zA-Z_$][0-9a-zA-Z_$]*\s*(?:<[^>]+>)?\s*=', 'const __dummy =', code)
+        
+        # 3. Strip class properties (handles both original classes and converted interfaces)
+        def replacer(match):
+            text_before = code[:match.start()]
+            if re.search(r'\b(?:let|const|var|return|import|export)\s+$', text_before):
+                return match.group(0)
+            
+            matches = re.findall(r'[?;{}()=]', text_before)
+            if matches:
+                last_char = matches[-1]
+                if last_char in '?=(),':
+                    return match.group(0)
+                    
+            return '\n' * match.group(0).count('\n')
+            
+        code = re.sub(
+            r'(?:(?:public|private|protected|readonly)\s+)*[a-zA-Z_$][0-9a-zA-Z_$]*\s*(?:\?|!)?\s*:\s*[^;={}()]+\s*(?:=[^;{}()]+)?;',
+            replacer,
+            code,
+            flags=re.MULTILINE
+        )
+        
+        # 4. Remove type annotations on variables/parameters/returns (e.g. : string | null)
+        type_segment = r'(?:[a-zA-Z_$][0-9a-zA-Z_$.]*(?:\s*<\s*[^>]+>\s*)?(?:\[\s*\])?|"[^"]*"|\'[^\']*\')'
+        union_regex = r'(?:\?)?\s*:\s*' + type_segment + r'(?:\s*[|&]\s*' + type_segment + r')*'
+
+        def union_replacer(match):
+            text_before = code[:match.start()]
+            matches = re.findall(r'[?;{}()=,]', text_before)
+            if matches:
+                last_char = matches[-1]
+                if last_char == '?':
+                    # check if it's ??
+                    idx = text_before.rfind('?')
+                    if idx > 0 and text_before[idx-1] == '?':
+                        return ''
+                    return match.group(0)
+            return ''
+
+        code = re.sub(union_regex, union_replacer, code)
+
+        # 5. Remove generic type parameters <T> and primitive casts <any>
         code = re.sub(r'<[A-Z]\w*(?:\s*,\s*[A-Z]\w*)*>', '', code)
-        # Remove interface/type declarations (entire blocks)
-        code = re.sub(r'(?:export\s+)?(?:interface|type)\s+\w+[^{]*\{[^}]*\}', '', code, flags=re.DOTALL)
-        # Remove 'as Type' casts
-        code = re.sub(r'\bas\s+\w+', '', code)
-        # Remove access modifiers
+        code = re.sub(r'<\s*(?:string|number|boolean|any|unknown|void)\s*>', '', code)
+
+        # 6. Remove 'as Type' casts (handles generics and arrays)
+        code = re.sub(r'\bas\s+[\w.]+(?:\s*<\s*[^>]+>\s*)?(?:\[\s*\])?', '', code)
+
+        # 7. Remove access modifiers from constructors/methods
         code = re.sub(r'\b(?:public|private|protected|readonly)\s+', '', code)
+        
         return code
 
     # ---------------------------------------------------------------

@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, List
+from .cpp_analyzer import CppLifetimeAnalyzer
+from .java_analyzer import JavaSemanticAnalyzer
+from .c_memory_analyzer import CMemoryAnalyzer
+from .python_analyzer import PythonSemanticAnalyzer
+from .js_analyzer import JavaScriptSemanticAnalyzer
+from .ts_analyzer import TypeScriptSemanticAnalyzer
 
 
 class Rule:
@@ -164,6 +170,36 @@ class StaticAnalyzer:
         """
         issues = []
         
+        # Run specialized C++ lifetime analyzer
+        if language == "C++":
+            cpp_analyzer = CppLifetimeAnalyzer()
+            issues.extend(cpp_analyzer.analyze(code))
+
+        # Run specialized Java semantic analyzer
+        if language == "Java":
+            java_analyzer = JavaSemanticAnalyzer()
+            issues.extend(java_analyzer.analyze(code))
+
+        # Run specialized C memory analyzer
+        if language == "C":
+            c_analyzer = CMemoryAnalyzer()
+            issues.extend(c_analyzer.analyze(code))
+
+        # Run specialized Python semantic analyzer
+        if language == "Python":
+            python_analyzer = PythonSemanticAnalyzer()
+            issues.extend(python_analyzer.analyze(code))
+
+        # Run specialized JavaScript semantic analyzer
+        if language == "JavaScript":
+            js_analyzer = JavaScriptSemanticAnalyzer()
+            issues.extend(js_analyzer.analyze(code))
+
+        # Run specialized TypeScript semantic analyzer
+        if language == "TypeScript":
+            ts_analyzer = TypeScriptSemanticAnalyzer()
+            issues.extend(ts_analyzer.analyze(code))
+            
         # Normalize analyzer input (CRLF/CR -> LF, remove BOM)
         normalized_code = code.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff")
         
