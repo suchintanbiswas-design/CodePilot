@@ -8,13 +8,31 @@ import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { 
   PlusCircle, Code, CheckCircle, 
-  FileCode2, TrendingUp, Zap, Sparkles
+  FileCode2, Zap, Sparkles
 } from 'lucide-react';
 import { Review } from '@/types/review';
 import { formatDate } from '@/lib/utils';
 import { reviewService } from '@/services/reviewService';
 
 import api from '@/config/api';
+
+const LANGUAGE_ORDER = [
+  'Java',
+  'Python',
+  'C',
+  'C++',
+  'TypeScript',
+  'JavaScript'
+];
+
+const LANGUAGE_COLORS: Record<string, string> = {
+  'Java': '#b07219',
+  'Python': '#3572A5',
+  'C': '#555555',
+  'C++': '#f34b7d',
+  'TypeScript': '#3178c6',
+  'JavaScript': '#f1e05a'
+};
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -27,7 +45,7 @@ export function DashboardPage() {
     avgScore: 0,
     reviewStreak: 0,
     aiUsageTokens: 'N/A',
-    techDebtTrend: null as number | null,
+    
     languagesData: [] as {name: string, percent: number, color: string}[],
   });
 
@@ -53,7 +71,7 @@ export function DashboardPage() {
             avgScore: metrics.avgScore || 0,
             reviewStreak: metrics.reviewStreak || 0,
             aiUsageTokens: formatTokens(metrics.aiUsageTokens),
-            techDebtTrend: metrics.techDebtTrend,
+            
             languagesData: metrics.languages || [],
           });
         }
@@ -99,7 +117,7 @@ export function DashboardPage() {
       </div>
 
       {/* Extended Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-2">
@@ -110,29 +128,6 @@ export function DashboardPage() {
               <div className="flex items-baseline gap-2">
                 <h3 className="text-3xl font-bold text-[var(--color-text-primary)]">{stats.avgScore}</h3>
                 <span className="text-xs text-green-500 font-medium">/100</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-sm font-medium text-[var(--color-text-secondary)]">Tech Debt Trend</p>
-              <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"><TrendingUp size={18} /></div>
-            </div>
-            {loading ? <Skeleton className="h-8 w-16" /> : (
-              <div className="flex items-baseline gap-2">
-                {stats.techDebtTrend !== null ? (
-                  <>
-                    <h3 className="text-3xl font-bold text-[var(--color-text-primary)]">{Math.abs(stats.techDebtTrend)}%</h3>
-                    <span className={`text-xs font-medium ${stats.techDebtTrend > 0 ? 'text-green-500' : stats.techDebtTrend < 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                      {stats.techDebtTrend > 0 ? 'Reduced' : stats.techDebtTrend < 0 ? 'Increased' : 'No Change'}
-                    </span>
-                  </>
-                ) : (
-                  <h3 className="text-3xl font-bold text-[var(--color-text-primary)]">N/A</h3>
-                )}
               </div>
             )}
           </CardContent>
@@ -265,14 +260,29 @@ export function DashboardPage() {
             <CardContent className="mt-4">
               <div className="space-y-4">
                 {stats.languagesData.length > 0 ? (
-                  stats.languagesData.map((lang) => (
+                  [...stats.languagesData]
+                    .sort((a, b) => {
+                      const idxA = LANGUAGE_ORDER.indexOf(a.name);
+                      const idxB = LANGUAGE_ORDER.indexOf(b.name);
+                      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                      if (idxA !== -1) return -1;
+                      if (idxB !== -1) return 1;
+                      return b.percent - a.percent;
+                    })
+                    .map((lang) => (
                     <div key={lang.name}>
                       <div className="flex justify-between items-center mb-1 text-sm">
                         <span className="font-medium text-[var(--color-text-primary)]">{lang.name}</span>
                         <span className="text-[var(--color-text-secondary)]">{lang.percent}%</span>
                       </div>
                       <div className="h-2 w-full bg-[var(--color-surface-secondary)] rounded-full overflow-hidden">
-                        <div className={`h-full ${lang.color} rounded-full`} style={{ width: `${lang.percent}%` }} />
+                        <div 
+                          className="h-full rounded-full" 
+                          style={{ 
+                            width: `${lang.percent}%`,
+                            backgroundColor: LANGUAGE_COLORS[lang.name] || '#6b7280'
+                          }} 
+                        />
                       </div>
                     </div>
                   ))
