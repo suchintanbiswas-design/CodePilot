@@ -1,0 +1,21 @@
+file,loc_expected,expected_security_level,expected_performance_level,expected_maintainability_level,known_issue_summary,ground_truth_source
+sample01.py,25,none,none,none,Clean utility functions with no known defects,Controlled benchmark: well-structured pure functions with low complexity and no security/performance concerns
+sample02.py,35,none,none,none,Clean data processing with no known defects,Controlled benchmark: well-factored with type hints and docstrings
+sample03.py,30,none,none,none,Clean file handler with proper error handling,Controlled benchmark: context-manager-based file reader with specific exceptions
+sample04.py,40,none,none,none,Clean class design with input validation,Controlled benchmark: small BankAccount class with basic operations and validation
+sample05.py,35,none,none,low,Mild style issues with unused imports and bare excepts,Controlled benchmark: unused imports (os sys) and bare except blocks but core logic is sound
+sample06.py,30,none,none,low,Minor complexity and one unused variable,Controlled benchmark: mildly complex condition but otherwise clean
+sample07.py,45,none,none,low,Slight maintainability issue and magic number,Controlled benchmark: function does two things and contains a magic number
+sample08.py,40,none,none,low,Minor naming issues and TODO comment,Controlled benchmark: single-letter variable names in a loop but functionally correct
+sample09.py,50,medium,none,none,Medium security concern with incomplete sanitization,Controlled benchmark: uses user input in a subprocess call without full sanitization
+sample10.py,45,none,medium,none,Medium performance issue with nested loop,Controlled benchmark: inefficient O(n^2) nested loop processing a list and broad exception handler
+sample11.py,60,none,none,medium,Medium maintainability with single function doing multiple things,Controlled benchmark: function >40 lines doing multiple things with moderate cyclomatic complexity
+sample12.py,55,medium,medium,none,Mixed medium issues with mild security smell and performance inefficiency,Controlled benchmark: string concatenation for SQL-like query and repeated list scanning
+sample13.py,65,high,none,none,High security with Reflected XSS and weak cryptographic hashing,Controlled benchmark: uses hashlib.md5 and reflects unsanitized user input in HTML response
+sample14.py,70,none,none,high,High complexity and maintainability issues,Controlled benchmark: deeply nested control flow and function with 8+ parameters and no docstrings
+sample15.py,65,high,high,none,High performance and security overlap,Controlled benchmark: unpickling untrusted data and N+1 query problem with SQL injection vulnerability
+sample16.py,75,high,none,high,High multi-category issues with XXE vulnerability and complex nested conditions,Controlled benchmark: parses untrusted XML using ElementTree without restricting external entities and contains deeply nested logic
+sample17.py,70,critical,none,none,Critical security with SSRF and Path Traversal,Controlled benchmark: fetches arbitrary URLs via requests.get and reads files via unsanitized path concatenation
+sample18.py,90,none,none,critical,Critical maintainability nightmare with massive deeply nested function,Controlled benchmark: massive function deeply nested with 10+ branches and no error handling and magic numbers
+sample19.py,85,critical,critical,none,Critical with insecure YAML deserialization and O(n^3) loops,Controlled benchmark: uses yaml.load on base64 network data and contains O(N^3) nested loops
+sample20.py,100,critical,none,critical,Critical with high LOC bloated module with security issues,Controlled benchmark: bloated module with poorly-structured classes and security issues like hardcoded credentials and exec

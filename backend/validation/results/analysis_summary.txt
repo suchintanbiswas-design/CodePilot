@@ -1,0 +1,85 @@
+======================================================================
+MATHEMATICAL VALIDATION
+======================================================================
+
+--- Boundedness Check ---
+  PASS: All 35 files have scores in [0, 100]
+
+--- Severity Monotonicity ---
+  PASS: Higher severity -> lower overall quality
+
+--- Confidence Monotonicity ---
+  PASS: Higher confidence -> lower overall quality
+
+--- Complexity Monotonicity ---
+  PASS: Higher complexity -> lower maintainability
+
+--- Size Normalization Consistency ---
+  PASS: Proportional issues produce similar normalized impact
+
+Total strict violations: 0
+
+======================================================================
+BENCHMARK SUMMARIES (20 sample files)
+======================================================================
+
+  overall_quality:
+    count=20  mean=81.05  median=93.0  min=25.0  max=100.0  stddev=25.15
+
+  security_score:
+    count=20  mean=79.2  median=100.0  min=0.0  max=100.0  stddev=36.94
+
+  performance_score:
+    count=20  mean=97.45  median=100.0  min=79.0  max=100.0  stddev=5.67
+
+  maintainability_score:
+    count=20  mean=72.65  median=84.5  min=0.0  max=100.0  stddev=31.08
+
+  technical_debt_health:
+    count=20  mean=74.0  median=88.0  min=0.0  max=100.0  stddev=35.18
+
+  issue_count:
+    count=20  mean=2.2  median=1.0  min=0.0  max=9.0  stddev=2.78
+
+  average_complexity:
+    count=20  mean=9.37  median=4.0  min=1.0  max=46.0  stddev=11.94
+
+  total_impact:
+    count=20  mean=14.25  median=6.16  min=0.0  max=69.76  stddev=20.65
+
+======================================================================
+GROUP ANALYSIS
+======================================================================
+
+  A (Clean):
+    Files: ['sample01.py', 'sample02.py', 'sample03.py', 'sample04.py']
+    Overall Quality: mean=97.25  min=89.0  max=100.0
+
+  B (Low):
+    Files: ['sample05.py', 'sample06.py', 'sample07.py', 'sample08.py']
+    Overall Quality: mean=95.25  min=84.0  max=100.0
+
+  C (Medium):
+    Files: ['sample09.py', 'sample10.py', 'sample11.py', 'sample12.py']
+    Overall Quality: mean=87.75  min=77.0  max=95.0
+
+  D (High):
+    Files: ['sample13.py', 'sample14.py', 'sample15.py', 'sample16.py']
+    Overall Quality: mean=76.25  min=36.0  max=95.0
+
+  E (Critical):
+    Files: ['sample17.py', 'sample18.py', 'sample19.py', 'sample20.py']
+    Overall Quality: mean=48.75  min=25.0  max=93.0
+
+--- Group Ordering Check ---
+  PASS: Group means are ordered A > B > C > D > E
+
+======================================================================
+RANKING PREPARATION
+======================================================================
+  Saved: ranked_by_overall.csv
+  Saved: ranked_by_security.csv
+  Saved: ranked_by_maintainability.csv
+
+  These CSVs can be joined with independently collected external measurements
+  (SonarQube, Radon MI, expert ratings) for Spearman rank correlation analysis.
