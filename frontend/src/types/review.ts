@@ -54,6 +54,17 @@ export interface ReviewMetadata {
     maintainability_score: number;
     maintainability_grade: string;
     technical_debt_score: number;
+    scoring_metadata?: {
+      total_impact: number;
+      normalized_impact: number;
+      confidence_adjusted_issue_count: number;
+      normalized_issue_density: number;
+      average_complexity: number;
+      loc_k: number;
+      lines_of_code: number;
+      num_functions: number;
+      raw_issue_count: number;
+    };
   };
   language_detection?: LanguageDetectionResult;
   ai_status?: 'available' | 'unavailable';
