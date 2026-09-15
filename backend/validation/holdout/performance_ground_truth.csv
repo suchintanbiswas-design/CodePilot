@@ -1,0 +1,11 @@
+﻿file,expected_performance_level,known_performance_issue,rationale
+holdout01.py,none,none,Clean efficient code with a single O(N) loop
+holdout02.py,none,none,Sequential loops are O(N) + O(M) and perfectly fine
+holdout03.py,none,none,Command pattern execute unrelated to database
+holdout04.py,none,none,Batch query outside loop with efficient iteration over results
+holdout05.py,medium,O(N^2) comparison,Two nested loops iterating over the same collection
+holdout06.py,critical,O(N^3) computation,Three nested loops indicating cubic complexity
+holdout07.py,high,N+1 query,SQL execution inside a for loop
+holdout08.py,high,N+1 query,SQL execution inside a while loop
+holdout09.py,medium,O(N^2) in-memory join,Efficient batch queries followed by inefficient nested loops
+holdout10.py,none,none,Fetching one row at a time from a single query via standard cursor iteration

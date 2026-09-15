@@ -16,6 +16,18 @@ Maintainability, Tech Debt Health) based on normalized issues.
 - Initial calibration weights — subject to empirical validation.
 - No empirical validation results have been fabricated.
 
+=== Cyclomatic Complexity vs Algorithmic Complexity ===
+These are fundamentally different metrics:
+- Cyclomatic complexity (McCabe) counts the number of linearly independent paths
+  through a program's source code. It measures control-flow decision complexity
+  and is used in the Maintainability penalty formula.
+- Algorithmic complexity (Big-O) describes how runtime or memory usage scales
+  with input size. Nested loops can indicate polynomial runtime growth, but
+  cyclomatic complexity alone cannot establish Big-O runtime.
+Cyclomatic complexity is therefore NOT used in the Performance Score calculation.
+Performance penalties are driven exclusively by findings explicitly categorized
+as Performance issues by the analyzers.
+
 === v2.0 Changes (from v1.0) ===
 - [BUG FIX] Maintainability no longer uses raw IssueCount (confidence-blind).
   Now uses ConfidenceAdjustedIssueCount for internal consistency.
@@ -24,6 +36,12 @@ Maintainability, Tech Debt Health) based on normalized issues.
 - [NEW] AverageComplexity replaces total cyclomatic complexity to avoid
   penalizing well-factored code with many small functions.
 - [NEW] Scoring metadata returned for transparency and validation.
+
+=== v2.1 Changes (from v2.0) ===
+- [BUG FIX] Removed "complexity" from PERFORMANCE_KEYWORDS. The COMPLEX_CONDITION
+  rule (rule_type: "Complexity") detects complex boolean expressions, which is a
+  maintainability concern, not an algorithmic performance issue. This was causing
+  false performance penalties on clean code. Added "nested_loop" keyword instead.
 """
 
 from typing import Any, Dict, List
@@ -70,9 +88,15 @@ class ScoringEngine:
         "security", "secret", "password", "credential", "injection",
         "authentication", "authorization", "eval", "unsafe",
     })
+    # NOTE: "complexity" was intentionally removed from this set.
+    # The COMPLEX_CONDITION rule (rule_type: "Complexity") detects complex boolean
+    # expressions, which is a maintainability concern, NOT algorithmic performance.
+    # Cyclomatic complexity ≠ algorithmic complexity.
+    # Genuine performance findings should use explicit keywords like "performance",
+    # "inefficient", "algorithm", or "nested_loop".
     PERFORMANCE_KEYWORDS = frozenset({
-        "performance", "complexity", "inefficient", "loop",
-        "algorithm", "resource",
+        "performance", "inefficient", "loop",
+        "algorithm", "resource", "nested_loop",
     })
 
     def __init__(self) -> None:

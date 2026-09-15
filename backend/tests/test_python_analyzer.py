@@ -719,3 +719,259 @@ class TestE2EPythonPipeline:
         assert len(md) == 1
         assert "add_item" in md[0]["description"]
 
+
+# ═══════════════════════════════════════════════════════════════════
+# PY_NESTED_LOOP_COMPLEXITY
+# ═══════════════════════════════════════════════════════════════════
+
+class TestNestedLoopComplexity:
+    """PY_NESTED_LOOP_COMPLEXITY rule."""
+
+    def test_nested_for_loops_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+data = [1, 2, 3]
+for a in data:
+    for b in data:
+        print(a, b)
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 1
+        assert nl[0]["rule_type"] == "Performance"
+        assert nl[0]["severity"] == "Medium"
+        assert "O(n^2)" in nl[0]["description"]
+
+    def test_nested_while_loops_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+i = 0
+while i < 10:
+    j = 0
+    while j < 10:
+        print(i, j)
+        j += 1
+    i += 1
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 1
+        assert nl[0]["severity"] == "Medium"
+
+    def test_three_level_nesting_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+data = [1, 2, 3]
+for a in data:
+    for b in data:
+        for c in data:
+            print(a, b, c)
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        # The outermost loop should be flagged as depth 3 (High severity)
+        outer = [i for i in nl if i["severity"] == "High"]
+        assert len(outer) >= 1
+        assert "depth 3" in outer[0]["description"]
+
+    def test_sequential_loops_not_flagged(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+data = [1, 2, 3]
+for a in data:
+    print(a)
+
+for b in data:
+    print(b)
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 0
+
+    def test_nested_loop_inside_function(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+def process(items):
+    for item in items:
+        for sub in item.children:
+            print(sub)
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 1
+        assert nl[0]["rule_type"] == "Performance"
+
+    def test_mixed_for_while_nesting_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+data = [1, 2, 3]
+for item in data:
+    idx = 0
+    while idx < len(data):
+        print(item, data[idx])
+        idx += 1
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 1
+
+    def test_single_loop_not_flagged(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for x in range(10):
+    print(x)
+"""
+        issues = analyzer.analyze(code)
+        nl = [i for i in issues if i["rule_name"] == "PY_NESTED_LOOP_COMPLEXITY"]
+        assert len(nl) == 0
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PY_N_PLUS_1_QUERY
+# ═══════════════════════════════════════════════════════════════════
+
+class TestNPlus1Query:
+    """PY_N_PLUS_1_QUERY rule."""
+
+    def test_query_inside_for_loop_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for user in users:
+    cursor.execute("SELECT * FROM orders WHERE user_id = ?", (user.id,))
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) >= 1
+        assert nq[0]["rule_type"] == "Performance"
+        assert nq[0]["severity"] == "High"
+        assert "N+1" in nq[0]["description"]
+
+    def test_query_inside_while_loop_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+idx = 0
+while idx < len(ids):
+    cursor.execute("SELECT * FROM data WHERE id = ?", (ids[idx],))
+    idx += 1
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) >= 1
+
+    def test_query_outside_loop_not_flagged(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+cursor.execute("SELECT * FROM users")
+results = cursor.fetchall()
+for row in results:
+    print(row)
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+
+    def test_unrelated_execute_inside_loop_not_flagged(self):
+        """A plain function call named 'execute' (not method call) should not trigger."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for task in tasks:
+    execute(task)
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+
+    def test_nested_query_loop_detected(self):
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for user in users:
+    cursor.execute("SELECT * FROM orders WHERE user_id = ?", (user.id,))
+    orders = cursor.fetchall()
+    for order in orders:
+        cursor.execute("SELECT * FROM items WHERE order_id = ?", (order.id,))
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        # Both the outer loop and inner loop should flag
+        assert len(nq) >= 1
+
+    def test_fetchall_inside_loop_not_flagged(self):
+        """fetchall() inside a loop should NOT be caught if there's no execute."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for table in tables:
+    rows = cursor.fetchall()
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+
+    def test_unrelated_object_execute_inside_loop_not_flagged(self):
+        """task.execute() should NOT be flagged as it doesn't look like a DB call."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for task in tasks:
+    task.execute()
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+
+    def test_fetchone_inside_loop_not_flagged(self):
+        """cursor.fetchone() inside a loop is valid iteration, NOT N+1."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+while True:
+    row = cursor.fetchone()
+    if row is None:
+        break
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+        
+    def test_fetchmany_inside_loop_not_flagged(self):
+        """cursor.fetchmany() inside a loop is valid iteration, NOT N+1."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+while True:
+    rows = cursor.fetchmany(100)
+    if not rows:
+        break
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) == 0
+
+    def test_connection_execute_inside_loop_flagged(self):
+        """connection.execute() inside a loop IS flagged."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for user in users:
+    connection.execute("UPDATE users SET active=1 WHERE id=?", (user,))
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) >= 1
+
+    def test_db_session_execute_inside_loop_flagged(self):
+        """session.execute() inside a loop IS flagged."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for item in items:
+    session.execute(stmt)
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) >= 1
+
+    def test_sql_argument_execute_inside_loop_flagged(self):
+        """unrelated_obj.execute("SELECT ...") inside a loop IS flagged due to SQL string."""
+        analyzer = PythonSemanticAnalyzer()
+        code = """
+for obj in objects:
+    client.execute("SELECT * FROM data")
+"""
+        issues = analyzer.analyze(code)
+        nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
+        assert len(nq) >= 1

@@ -1,0 +1,16 @@
+file,loc,expected_performance_level,codepilot_performance_score,issue_count,average_complexity,relevant_findings
+final01.py,6,none,100,0,0.0,none
+final02.py,13,none,100,0,0.0,none
+final03.py,8,medium,90,1,0.0,PY_NESTED_LOOP_COMPLEXITY
+final04.py,8,critical,71,2,0.0,PY_NESTED_LOOP_COMPLEXITY;PY_NESTED_LOOP_COMPLEXITY
+final05.py,8,high,82,1,0.0,PY_N_PLUS_1_QUERY
+final06.py,6,none,100,0,0.0,none
+final07.py,10,none,100,0,0.0,none
+final08.py,5,none,100,0,0.0,none
+final09.py,11,medium,90,1,0.0,PY_NESTED_LOOP_COMPLEXITY
+final10.py,6,low,100,0,0.0,none
+final11.py,7,none,100,0,0.0,none
+final12.py,10,high,100,0,0.0,none
+final13.py,9,medium,100,0,0.0,none
+final14.py,18,none,100,0,0.0,none
+final15.py,9,critical,16,5,0.0,PY_NESTED_LOOP_COMPLEXITY;PY_N_PLUS_1_QUERY;PY_NESTED_LOOP_COMPLEXITY;PY_N_PLUS_1_QUERY;PY_N_PLUS_1_QUERY

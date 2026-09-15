@@ -1,0 +1,10 @@
+Number of analyzed files: 20
+min MI: 40.97
+max MI: 100.00
+mean MI: 75.03
+min complexity: 5
+max complexity: 47
+mean complexity: 14.15
+min average complexity: 1.60
+max average complexity: 35.00
+mean average complexity: 8.14

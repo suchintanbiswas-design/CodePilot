@@ -585,18 +585,27 @@ class TestRealCodeIntegration:
         assert secure_result["security_score"] == 100
 
     def test_performance_score_with_real_code(self):
-        """Test that submitting code with recognized performance issues lowers performance score."""
+        """Test that submitting code with recognized performance issues lowers performance score.
+
+        NOTE (v2.1): The original test used COMPLEX_CONDITION ('if a and b and c and d')
+        as a performance proxy. This was the exact bug identified by the root-cause audit:
+        COMPLEX_CONDITION detects complex boolean expressions (maintainability), NOT
+        algorithmic performance. Updated to use nested loops which correctly trigger
+        PY_NESTED_LOOP_COMPLEXITY (rule_type: Performance).
+        """
         from app.engine.static_analyzer import StaticAnalyzer
         analyzer = StaticAnalyzer()
 
-        inefficient_code = 'if a and b and c and d:\n    pass'
+        # Code with nested loops — genuine algorithmic performance concern
+        inefficient_code = 'for a in data:\n    for b in data:\n        process(a, b)\n'
         issues = analyzer.analyze(inefficient_code, "Python")
         for issue in issues:
             issue["confidence"] = 100
 
         inefficient_result = self.engine.calculate_scores(issues)
 
-        efficient_code = 'if a:\n    if b:\n        pass'
+        # Code without nested loops — no performance concern
+        efficient_code = 'for a in data:\n    process(a)\n'
         efficient_issues = analyzer.analyze(efficient_code, "Python")
         for issue in efficient_issues:
             issue["confidence"] = 100
@@ -604,7 +613,7 @@ class TestRealCodeIntegration:
         efficient_result = self.engine.calculate_scores(efficient_issues)
 
         assert inefficient_result["performance_score"] < 100
-        assert efficient_result["performance_score"] > inefficient_result["performance_score"]
+        assert efficient_result["performance_score"] >= inefficient_result["performance_score"]
         assert efficient_result["performance_score"] == 100
 
 
@@ -626,3 +635,85 @@ class TestGradeMapping:
         assert ScoringEngine._grade(60) == "D"
         assert ScoringEngine._grade(59.9) == "F"
         assert ScoringEngine._grade(0) == "F"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Performance Category Classification Regression
+# ═══════════════════════════════════════════════════════════════════
+
+class TestPerformanceCategoryRegression:
+    """Regression tests for the 'complexity' keyword removal from PERFORMANCE_KEYWORDS."""
+
+    def setup_method(self):
+        self.engine = ScoringEngine()
+
+    def test_complexity_rule_type_does_not_affect_performance(self):
+        """A COMPLEX_CONDITION finding (rule_type='Complexity') must NOT create a performance penalty."""
+        issues = [
+            {
+                "severity": "Medium",
+                "confidence": 86,
+                "rule_type": "Complexity",
+                "description": "Complex condition, refactor into smaller methods",
+            }
+        ]
+        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
+        assert result["performance_score"] == 100, (
+            "COMPLEX_CONDITION findings should NOT penalize Performance Score"
+        )
+
+    def test_multiple_complexity_findings_no_performance_penalty(self):
+        """Multiple COMPLEX_CONDITION findings must not affect performance."""
+        issues = [
+            {
+                "severity": "Medium",
+                "confidence": 86,
+                "rule_type": "Complexity",
+                "description": "Complex condition, refactor into smaller methods",
+            }
+            for _ in range(5)
+        ]
+        result = self.engine.calculate_scores(issues, cyclomatic_complexity=10, lines_of_code=100, num_functions=3)
+        assert result["performance_score"] == 100
+
+    def test_performance_rule_type_does_affect_performance(self):
+        """A finding with rule_type='Performance' MUST create a performance penalty."""
+        issues = [
+            {
+                "severity": "Medium",
+                "confidence": 86,
+                "rule_type": "Performance",
+                "description": "Nested loops may introduce O(n^2)-style algorithmic complexity",
+            }
+        ]
+        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
+        assert result["performance_score"] < 100, (
+            "Performance-typed findings MUST penalize Performance Score"
+        )
+
+    def test_nested_loop_keyword_affects_performance(self):
+        """A finding with 'nested_loop' in description must affect performance."""
+        issues = [
+            {
+                "severity": "High",
+                "confidence": 88,
+                "rule_type": "Performance",
+                "description": "nested_loop complexity detected",
+            }
+        ]
+        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
+        assert result["performance_score"] < 100
+
+    def test_complexity_still_affects_maintainability(self):
+        """Removing 'complexity' from PERFORMANCE_KEYWORDS must NOT break maintainability scoring."""
+        issues = [
+            {
+                "severity": "Medium",
+                "confidence": 86,
+                "rule_type": "Complexity",
+                "description": "Complex condition, refactor into smaller methods",
+            }
+        ]
+        result = self.engine.calculate_scores(issues, cyclomatic_complexity=15, lines_of_code=50, num_functions=1)
+        # Maintainability MUST be penalized (it uses total_impact and complexity, not keywords)
+        assert result["maintainability_score"] < 100

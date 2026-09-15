@@ -1,0 +1,16 @@
+file,expected_performance_level,known_performance_issue,rationale
+final01.py,none,none,Clean O(N) processing
+final02.py,none,none,Sequential loops are O(N) + O(N)
+final03.py,medium,O(N^2) comparison,Nested loops over students
+final04.py,critical,O(N^3) computation,Triple nested loops for 3D voxels
+final05.py,high,N+1 query,db.execute inside for loop
+final06.py,none,none,Batched database query using IN clause
+final07.py,none,none,fetchone inside while loop is standard streaming
+final08.py,none,none,step.execute is a command pattern not database N+1
+final09.py,medium,O(N^2) comparison,Efficient DB fetch but O(N^2) in memory
+final10.py,low,String concatenation in loop,+= on strings is O(N^2) in python depending on implementation
+final11.py,none,none,O(N) recursive tree traversal
+final12.py,high,ORM N+1 query,session.query inside loop
+final13.py,medium,O(N^2) via list.index,repeated list.index() inside loop
+final14.py,none,none,High cyclomatic complexity but O(1) performance
+final15.py,critical,Nested N+1 queries,Database queries inside deeply nested loops

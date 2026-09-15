@@ -52,6 +52,14 @@ class PythonSemanticAnalyzer:
             if isinstance(node, ast.Compare):
                 self._check_is_literal_comparison(node, issues)
 
+            # Rule: PY_NESTED_LOOP_COMPLEXITY
+            if isinstance(node, (ast.For, ast.While)):
+                self._check_nested_loops(node, issues)
+
+            # Rule: PY_N_PLUS_1_QUERY
+            if isinstance(node, (ast.For, ast.While)):
+                self._check_n_plus_1_query(node, issues)
+
             # Rule: PY_OS_SYSTEM_INJECTION
             # (handled within ast.Call)
 
@@ -326,6 +334,170 @@ class PythonSemanticAnalyzer:
                     rule_name="PY_IS_LITERAL_COMPARISON",
                     rule_type="Bugs",
                 ))
+
+    # ── Rule: PY_NESTED_LOOP_COMPLEXITY ──────────────────────────────
+
+    def _check_nested_loops(
+        self,
+        node: ast.For | ast.While,
+        issues: List[Dict[str, Any]],
+    ) -> None:
+        """Detect nested for/while loops that may indicate O(n²)+ algorithmic complexity.
+
+        IMPORTANT DISTINCTION: Cyclomatic complexity ≠ Algorithmic complexity.
+        - Cyclomatic complexity (McCabe) measures the number of independent paths
+          through a program's control-flow graph. It is a code-structure metric.
+        - Algorithmic complexity (Big-O) describes how runtime/space scales with
+          input size. Nested loops over collections are a common indicator of
+          polynomial runtime growth.
+        This rule addresses algorithmic complexity only.
+        """
+        # Walk only the direct body of this loop (not the entire subtree via ast.walk,
+        # which would cause duplicate reports for the same outer loop).
+        # We use a manual recursive descent to find the first nested loop at each level.
+        nesting_depth = self._find_loop_nesting_depth(node)
+
+        if nesting_depth >= 2:
+            outer_type = "for" if isinstance(node, ast.For) else "while"
+            if nesting_depth >= 3:
+                desc = (
+                    f"Deeply nested loops (depth {nesting_depth}): "
+                    f"'{outer_type}' loop at line {node.lineno} contains multiple levels "
+                    f"of nested loops. This may introduce O(n^{nesting_depth})-style or "
+                    f"higher algorithmic complexity depending on input relationships. "
+                    f"Consider restructuring with lookups (dict/set), indexing, or "
+                    f"algorithmic improvements."
+                )
+                severity = "High"
+            else:
+                desc = (
+                    f"Nested loops may introduce O(n^2)-style algorithmic complexity "
+                    f"depending on input relationships. The '{outer_type}' loop at "
+                    f"line {node.lineno} contains an inner loop. Consider using "
+                    f"dict/set lookups or other algorithmic improvements to reduce "
+                    f"time complexity."
+                )
+                severity = "Medium"
+
+            issues.append(self._make_issue(
+                line_number=node.lineno,
+                severity=severity,
+                description=desc,
+                rule_name="PY_NESTED_LOOP_COMPLEXITY",
+                rule_type="Performance",
+            ))
+
+    def _find_loop_nesting_depth(self, node: ast.AST) -> int:
+        """Return the maximum loop nesting depth starting from (and including) node.
+
+        A single loop with no inner loops returns 1.
+        A loop containing one inner loop returns 2, etc.
+        A non-loop node returns 0.
+        """
+        if not isinstance(node, (ast.For, ast.While)):
+            return 0
+
+        max_child_depth = 0
+        # Walk only direct children in the loop body (and orelse)
+        for child_list in (node.body, getattr(node, 'orelse', [])):
+            for child in child_list:
+                depth = self._max_loop_depth_in_subtree(child)
+                if depth > max_child_depth:
+                    max_child_depth = depth
+
+        return 1 + max_child_depth
+
+    def _max_loop_depth_in_subtree(self, node: ast.AST) -> int:
+        """Find the maximum loop nesting depth in the subtree rooted at node."""
+        if isinstance(node, (ast.For, ast.While)):
+            return self._find_loop_nesting_depth(node)
+
+        max_depth = 0
+        for child in ast.iter_child_nodes(node):
+            depth = self._max_loop_depth_in_subtree(child)
+            if depth > max_depth:
+                max_depth = depth
+
+        return max_depth
+
+    # ── Rule: PY_N_PLUS_1_QUERY ──────────────────────────────────────
+
+    def _check_n_plus_1_query(
+        self,
+        node: ast.For | ast.While,
+        issues: List[Dict[str, Any]],
+    ) -> None:
+        """Detect database query execution inside a loop (N+1 query anti-pattern).
+
+        Looks for calls to common database cursor/query APIs structurally
+        located inside a for/while loop body. This is a conservative heuristic
+        that checks method names without dataflow analysis.
+        """
+        # Known database query execution method names (fetch* methods removed to avoid false positives)
+        db_execute_methods = frozenset({
+            "execute", "executemany", "executescript"
+        })
+
+        # Common variable names indicating a database connection or cursor
+        db_receiver_names = frozenset({
+            "cursor", "cur", "conn", "connection", "db", "session", "engine", "client"
+        })
+
+        # Walk the loop body looking for Call nodes with matching method names
+        query_calls = []
+        for child in ast.walk(node):
+            if child is node:
+                continue
+            if not isinstance(child, ast.Call):
+                continue
+
+            func = child.func
+            if isinstance(func, ast.Attribute) and func.attr in db_execute_methods:
+                is_db_call = False
+                receiver = func.value
+                
+                # 1. Check receiver name (e.g., cursor.execute, self.db.execute)
+                receiver_name = ""
+                if isinstance(receiver, ast.Attribute):
+                    receiver_name = receiver.attr
+                elif isinstance(receiver, ast.Name):
+                    receiver_name = receiver.id
+                    
+                if receiver_name.lower() in db_receiver_names or "sql" in receiver_name.lower():
+                    is_db_call = True
+                
+                # 2. Check arguments for SQL-like string literals
+                if not is_db_call and child.args:
+                    first_arg = child.args[0]
+                    if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                        val = first_arg.value.strip().upper()
+                        if val.startswith("SELECT ") or val.startswith("UPDATE ") or \
+                           val.startswith("INSERT ") or val.startswith("DELETE "):
+                            is_db_call = True
+
+                if is_db_call:
+                    query_calls.append(child)
+
+        if query_calls:
+            loop_type = "for" if isinstance(node, ast.For) else "while"
+            count = len(query_calls)
+            line_numbers = sorted(set(str(c.lineno) for c in query_calls))
+
+            issues.append(self._make_issue(
+                line_number=node.lineno,
+                severity="High",
+                description=(
+                    f"Potential N+1 query pattern: {count} database query "
+                    f"call(s) detected inside a '{loop_type}' loop "
+                    f"(query lines: {', '.join(line_numbers)}). "
+                    f"Each loop iteration may execute a separate database query, "
+                    f"leading to O(n) queries instead of a single batch query. "
+                    f"Consider using bulk queries, JOINs, or preloading data "
+                    f"before the loop."
+                ),
+                rule_name="PY_N_PLUS_1_QUERY",
+                rule_type="Performance",
+            ))
 
     # ── Helpers ───────────────────────────────────────────────────────
 
