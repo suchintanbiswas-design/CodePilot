@@ -1,47 +1,55 @@
 <div align="center">
   <h1>🚀 CodePilot</h1>
-  <p>Your AI-Powered DevOps and Code Review Assistant.</p>
-  
-  [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg?style=flat-square)](#)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+  <p><b>AI-Powered Multi-Language Code Review Assistant</b></p>
 </div>
 
 ---
 
 ## 📖 Overview
 
-**CodePilot** is an advanced AI-powered assistant designed to streamline your development and DevOps workflows. By deeply integrating into your development pipeline, CodePilot helps developers automatically review code, generate intelligent insights, manage documentation, and easily deploy high-quality applications. 
+**CodePilot** is an advanced AI-powered assistant designed to streamline your development workflows. By deeply integrating into your development pipeline, CodePilot helps developers automatically review code, generate intelligent insights, and maintain codebase health.
 
-Whether you need automated pull request summaries, vulnerability detection, or DevOps infrastructure scaffolding, CodePilot is built to ensure a robust and accelerated software development lifecycle.
+CodePilot analyzes your code using a robust hybrid engine that combines deterministic static analysis, language-specific AST semantics, and contextual AI insights to deliver an explainable and reliable code quality score.
 
 ## ✨ Key Features
 
-- 🤖 **AI Code Review**: Automated suggestions, linting, and architectural insights.
-- 🐳 **Docker Integration**: One-click configuration for both dev and prod environments.
-- 🚀 **Multi-Cloud Deployment**: Out-of-the-box configurations for Railway, Render, and Fly.io.
-- 🔒 **Security First**: Comprehensive vulnerability scanning and best practices enforcement.
-- 🎨 **Modern Interface**: A sleek React-based dashboard for managing projects and repositories.
-- 📊 **Advanced Analytics**: Detailed reporting on repository health and coding patterns.
+- **Hybrid Code Review Pipeline**: Combines deterministic static analysis with contextual AI insights.
+- **Explainable Scoring Engine**: An independent, confidence-aware scoring engine that evaluates security, performance, maintainability, and technical debt.
+- **Multi-Language Support**: Full analysis support for C, C++, Java, Python, JavaScript, and TypeScript.
+- **Security First**: Comprehensive vulnerability scanning and best practices enforcement.
+- **Modern Interface**: A sleek React-based dashboard for managing code reviews and repository health.
+- **Advanced Analytics**: Detailed reporting on repository health and coding patterns.
 
-## 🏗️ Architecture
+## 🏗️ Core Architecture
 
 ```mermaid
 graph TD
-    A[Frontend React App] --> B[API Gateway FastAPI]
-    B --> C[Auth Service]
-    B --> D[Code Review Engine]
-    B --> E[Deployment Orchestrator]
-    
-    C --> F[(PostgreSQL)]
-    D --> F
-    D --> G[Redis Cache]
-    D --> H[External AI Models]
-    
-    E --> I[Railway / Render / Fly]
+    A[React Frontend] --> B[FastAPI Backend / REST API]
+    B --> C[Language Detection]
+    C --> D[Syntax Validation]
+    D --> E[Static & Semantic Analysis]
+    D --> F[Google Gemini AI Analysis]
+    E --> G[Hybrid Engine]
+    F --> G
+    G --> H[Confidence Engine]
+    H --> I[CodePilot Scoring Engine]
+    I --> J[(PostgreSQL & Redis)]
+    J --> A
 ```
 
-## 🛠️ Tech Stack
+### The Hybrid Review Pipeline
+1. **Deterministic Static Analysis & Language-Specific Semantic Analysis**: Fast, rule-based AST checks for well-known bugs, smells, and patterns.
+2. **Google Gemini Contextual Analysis**: Complementary AI layer that finds complex logical errors and provides human-readable explanations.
+3. **Hybrid Engine Deduplication**: Merges and deduplicates findings from both static and AI sources to prevent redundant issues.
+
+### The CodePilot Scoring Engine
+The final numerical score is **independently calculated** rather than blindly assigned by the AI. It is:
+- **Deterministic & Explainable**: Mathematical formulation based on actual finding severity and density.
+- **Confidence-Aware**: Adjusts penalties based on the confidence level of the analysis source.
+- **LOC-Normalized**: Scales penalties appropriately based on the size of the file.
+- **Holistic**: Combines Security, Performance, Maintainability, and Technical Debt into a unified health score.
+
+## 💻 Tech Stack
 
 | Category | Technology | Purpose |
 | :--- | :--- | :--- |
@@ -49,15 +57,15 @@ graph TD
 | **Backend** | Python, FastAPI | High-performance asynchronous REST API. |
 | **Database** | PostgreSQL | Relational data mapping and persistence. |
 | **Caching** | Redis | Session management and fast data retrieval. |
-| **Containerization**| Docker, Docker Compose | Consistent environments across environments. |
+| **AI** | Google Gemini AI | Contextual code analysis (complementary). |
+| **Containerization**| Docker, Docker Compose | Consistent environments across systems. |
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 codepilot/
-├── .github/              # GitHub templates and workflows
 ├── backend/              # FastAPI application
-│   ├── app/              # Application logic and routers
+│   ├── app/              # Application logic, routers, scoring engine
 │   ├── tests/            # Pytest suites
 │   ├── Dockerfile        # Backend container definition
 │   └── requirements.txt  # Python dependencies
@@ -67,48 +75,38 @@ codepilot/
 │   └── Dockerfile        # Frontend container definition
 ├── docker-compose.yml    # Development Docker config
 ├── docker-compose.prod.yml# Production Docker config
-├── Makefile              # Helper scripts and aliases
 └── README.md             # Project documentation
 ```
 
-## 🗄️ Database Schema
+## 📊 Empirical Validation & Results
 
-```mermaid
-erDiagram
-    User ||--o{ Review : creates
-    User ||--o{ Report : manages
-    User ||--o{ Favorite : adds
-    User ||--o{ FavoriteCollection : curates
-    User ||--|| UserSettings : has
-    User ||--o{ AuditLog : generates
-    
-    Review ||--o{ Report : belongs_to
-    Review {
-        int id
-        string content
-        date created_at
-    }
-    
-    FavoriteCollection ||--o{ Favorite : contains
-    
-    User {
-        int id
-        string username
-        string email
-        string password_hash
-    }
-```
+The CodePilot Scoring Engine has been rigorously evaluated against mathematical and external baselines. *(Note: These results demonstrate strong correlations under test conditions but do not claim universal correctness across all possible codebases.)*
 
-## 🌐 API Overview
+### Mathematical Validation
+- Boundedness: **PASS**
+- Severity monotonicity: **PASS**
+- Confidence monotonicity: **PASS**
+- Non-improvement when adding issues: **PASS**
+- Complexity monotonicity: **PASS**
+- Exact weighted aggregation: **PASS**
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/login` | Authenticate user and get JWT token. |
-| `POST` | `/api/v1/auth/register`| Register a new user account. |
-| `GET`  | `/api/v1/users/me`     | Get current logged in user details. |
-| `POST` | `/api/v1/reviews`      | Trigger a new AI code review. |
-| `GET`  | `/api/v1/reviews/{id}` | Fetch a specific review result. |
-| `GET`  | `/api/v1/favorites`    | List favorite repositories/snippets. |
+### Test Coverage
+- **46** scoring-engine tests passing.
+- **75** Python-analyzer tests passing after performance/N+1 fixes.
+
+### Sensitivity Analysis
+- 27 Maintainability configurations & 6 Overall-weight configurations.
+- Maintainability baseline Spearman ρ: **0.9392–0.9989**
+- Overall baseline Spearman ρ: **0.9936–0.9967**
+- Maximum score change: **25.75 points**
+- Maximum ranking reversals: **39 / 190 pairs**
+
+### External Validation
+- Maintainability vs Radon MI: ρ = +0.3189, p = 0.1707, n = 20
+- Security vs independent severity: ρ = -0.3853, p = 0.0935, n = 20
+- Performance unseen holdout: ρ = -0.7890, p < 0.001, n = 15
+- Performance holdout precision = **100%**
+- Performance holdout recall = **62.5%**
 
 ## 🚀 Getting Started
 
@@ -120,117 +118,56 @@ erDiagram
 ### Quick Start
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/codepilot.git
-   cd codepilot
+   git clone https://github.com/suchintanbiswas-design/CodePilot.git
+   cd CodePilot
    ```
 
 2. **Setup environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your specific secrets
+   # Edit .env with your specific secrets (especially GEMINI_API_KEY)
    ```
 
 3. **Start the application**
    ```bash
-   make dev
-   # Or manually: docker-compose up --build
+   docker-compose up --build
    ```
 
-## 🐳 Docker Setup
-
-CodePilot provides distinct Docker Compose setups for development and production to optimize your workflow.
-
-### Development
-Includes hot-reloading for both React and FastAPI.
-```bash
-make dev
-```
-
-### Production
-Optimized, multi-stage builds with proper security headers and limits.
-```bash
-make prod
-```
-
-## 🔐 Environment Variables
+## ⚙️ Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `APP_ENV` | Application environment (`development` or `production`). | `development` |
-| `DEBUG` | Enable verbose logging. | `true` |
 | `POSTGRES_USER` | Database username. | `codepilot` |
 | `POSTGRES_PASSWORD` | Database password. | `changeme` |
 | `POSTGRES_DB` | Database name. | `codepilot_db` |
 | `JWT_SECRET_KEY` | Secret key for JWT authentication. | `super-secret-key` |
 | `REDIS_URL` | Connection URL for Redis cache. | `redis://redis:6379/0` |
-| `OPENAI_API_KEY` | API key for AI features. | `(required)` |
-
-## ☁️ Deployment
-
-CodePilot includes ready-to-use configurations for major PaaS providers.
-
-### Railway
-1. Connect your GitHub repository to Railway.
-2. Railway will automatically detect the `railway.json` file.
-3. Configure your environment variables in the Railway dashboard.
-
-### Render
-1. Create a new "Blueprint" in Render.
-2. Render will read the `render.yaml` file and deploy both the static frontend and Docker backend.
-
-### Fly.io
-1. Install the Fly CLI.
-2. Run `fly launch` in the root directory. It will detect `fly.toml`.
-3. Set your secrets: `fly secrets set JWT_SECRET_KEY=...`
-4. Deploy: `fly deploy`
-
-## 📸 Screenshots
-
-*[Screenshots coming soon]*
+| `GEMINI_API_KEY` | API key for Google Gemini analysis. | `(required)` |
 
 ## 🧪 Testing
 
-We use `pytest` for the backend and `jest` for the frontend.
+We use `pytest` for the backend and `vitest`/`jest` for the frontend.
 
 ```bash
-# Run all tests
-make test
+# Run backend tests
+cd backend
+python -m pytest
 
-# Run only backend tests
-make test-backend
-
-# Run only frontend tests
-make test-frontend
+# Run frontend tests
+cd frontend
+npm run test
 ```
 
-## 🩺 Troubleshooting
+## 🛠️ Deployment
 
-- **Database Connection Error**: Ensure that the `POSTGRES_PASSWORD` in your `.env` matches the configuration in `docker-compose.yml`.
-- **Ports already in use**: If port `8000` or `80` is in use, modify the port mapping in `docker-compose.yml` or stop the conflicting service.
-- **AI Features not responding**: Verify your `OPENAI_API_KEY` is valid and has sufficient quota.
+CodePilot includes Docker Compose configurations for easy deployment to any Docker-compatible hosting environment (e.g., AWS EC2, DigitalOcean Droplets). 
 
-## 🚧 Known Limitations
+Use `docker-compose.prod.yml` for production deployments.
 
+## ⚠️ Known Limitations
 - Real-time collaborative editing is not yet fully supported.
-- Limited out-of-the-box support for older version control systems (SVN/Mercurial).
-- The built-in AI models currently have a context window limitation of 8k tokens.
+- The built-in AI models currently have a context window limitation based on the chosen Gemini tier.
 
-## 🔭 Future Scope
-
-- [ ] Native GitHub App integration.
-- [ ] Enterprise SAML/SSO Authentication.
-- [ ] Advanced visual deployment pipelines within the dashboard.
-- [ ] Support for self-hosted LLMs (e.g., Llama 2, Mistral).
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on how to get started. By participating in this project, you agree to abide by our Code of Conduct.
-
-## 📄 License
-
+## 📜 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Thanks to the FastAPI and React communities.
-- Shoutout to the incredible open-source tools that power CodePilot.
