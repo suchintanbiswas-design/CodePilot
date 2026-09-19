@@ -23,9 +23,12 @@ async def create_collection(
 
 @router.get("/collections")
 async def get_collections(
-    current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import func as sa_func, select as sa_select
+    from sqlalchemy import func as sa_func
+    from sqlalchemy import select as sa_select
+
     from app.models.favorite import Favorite
 
     cols = await favorite_service.get_collections(db, current_user.id)
@@ -85,9 +88,13 @@ async def get_collection_reviews(
                 "repositoryUrl": r.repo_url or r.title or "Unknown",
                 "branch": "main",
                 "status": r.status,
-                "overallScore": (r.review_metadata or {}).get("quality_score", r.quality_score or 0),
+                "overallScore": (r.review_metadata or {}).get(
+                    "quality_score", r.quality_score or 0
+                ),
                 "issuesFound": len(r.issues) if r.issues else 0,
-                "criticalIssues": len([i for i in (r.issues or []) if i.get("severity") == "Critical"]),
+                "criticalIssues": len(
+                    [i for i in (r.issues or []) if i.get("severity") == "Critical"]
+                ),
                 "createdAt": r.created_at.isoformat() if r.created_at else "",
             }
             for r in reviews

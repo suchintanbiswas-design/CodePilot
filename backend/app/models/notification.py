@@ -1,12 +1,11 @@
-from datetime import datetime
 import uuid
 from typing import Optional
 
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import BaseMixin, Base
+from app.models.base import Base, BaseMixin
 
 
 class Notification(Base, BaseMixin):
@@ -22,10 +21,14 @@ class Notification(Base, BaseMixin):
     )
     title: Mapped[str] = mapped_column(String(255))
     message: Mapped[str] = mapped_column(Text)
-    type: Mapped[str] = mapped_column(String(50))  # 'review_completed', 'review_failed', 'security'
+    type: Mapped[str] = mapped_column(
+        String(50)
+    )  # 'review_completed', 'review_failed', 'security'
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     # Using specific constraints or metadata for deduplication if needed
-    reference_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    reference_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
 
     user = relationship("User")

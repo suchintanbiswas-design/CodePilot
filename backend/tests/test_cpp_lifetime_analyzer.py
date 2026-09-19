@@ -1,12 +1,11 @@
-﻿import pytest
-from app.engine.cpp_analyzer import CppLifetimeAnalyzer
-from app.engine.static_analyzer import StaticAnalyzer
+﻿from app.engine.cpp_analyzer import CppLifetimeAnalyzer
 from app.engine.hybrid_engine import HybridEngine
-
+from app.engine.static_analyzer import StaticAnalyzer
 
 # ---------------------------------------------------------------------------
 # Unit-level CppLifetimeAnalyzer tests
 # ---------------------------------------------------------------------------
+
 
 def test_raw_pointer_returned_from_vector_indexed():
     """return &inventory[id] — indexed access."""
@@ -353,9 +352,9 @@ def test_e2e_full_library_manager_has_erasure_finding():
     fused = engine.fuse(normalised, [])
 
     erasure = [
-        i for i in fused
-        if "Container erasure" in i["description"]
-        and "currentBook" in i["description"]
+        i
+        for i in fused
+        if "Container erasure" in i["description"] and "currentBook" in i["description"]
     ]
     assert len(erasure) >= 1, (
         f"Expected erasure finding mentioning currentBook; got: "
@@ -375,7 +374,8 @@ def test_e2e_full_library_manager_has_reallocation_finding():
     fused = engine.fuse(normalised, [])
 
     realloc = [
-        i for i in fused
+        i
+        for i in fused
         if "Vector reallocation" in i["description"]
         and "currentBook" in i["description"]
     ]

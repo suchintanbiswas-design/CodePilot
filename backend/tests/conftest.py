@@ -19,7 +19,9 @@ if _HAS_INTEGRATION_DEPS:
 
     @pytest_asyncio.fixture
     async def client():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
             yield ac
 
     @pytest.fixture
@@ -31,6 +33,7 @@ if _HAS_INTEGRATION_DEPS:
     async def override_get_db(mock_db_session):
         async def _get_db():
             yield mock_db_session
+
         app.dependency_overrides[get_db] = _get_db
         yield
         app.dependency_overrides.clear()
@@ -45,4 +48,3 @@ if _HAS_INTEGRATION_DEPS:
     def override_get_redis(mock_redis):
         with patch("app.main.get_redis", return_value=mock_redis):
             yield mock_redis
-

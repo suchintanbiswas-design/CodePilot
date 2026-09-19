@@ -52,7 +52,7 @@ export function NewReviewPage() {
         }
         const fileContent = await file.text();
         const formData = new FormData();
-        const reqData: any = { 
+        const reqData: Record<string, unknown> = {
           title,
           source_code: fileContent,
           file_name: file.name,
@@ -175,7 +175,7 @@ export function NewReviewPage() {
                 <button
                   key={tab}
                   onClick={() => {
-                    setActiveTab(tab as any);
+                    setActiveTab(tab as "paste" | "upload");
                     setShowLanguageFallback(false);
                     setLanguage('');
                   }}

@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Tuple
 
+
 class AIAvailabilityError(Exception):
     def __init__(self, reason: str, message: str):
         super().__init__(message)

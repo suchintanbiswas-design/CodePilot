@@ -37,7 +37,13 @@ app.add_middleware(
     allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -70,13 +76,13 @@ async def health_check():
         pass
 
     return {
-        "status": "healthy" if db_status == "ok" and redis_status == "ok" else "degraded",
-        "checks": {
-            "database": db_status,
-            "redis": redis_status
-        },
-        "version": "1.0.0"
+        "status": (
+            "healthy" if db_status == "ok" and redis_status == "ok" else "degraded"
+        ),
+        "checks": {"database": db_status, "redis": redis_status},
+        "version": "1.0.0",
     }
+
 
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
@@ -84,4 +90,5 @@ async def readiness_check():
     if health["status"] == "healthy":
         return health
     from fastapi import HTTPException
+
     raise HTTPException(status_code=503, detail="Service Unavailable")

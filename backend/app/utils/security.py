@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
-from jose import JWTError, jwt
 import bcrypt
+from jose import JWTError, jwt
 
 from app.config.settings import settings
 from app.utils.exceptions import UnauthorizedException
@@ -53,4 +53,4 @@ def decode_token(token: str) -> Dict[str, Any]:
         )
         return payload
     except JWTError as e:
-        raise UnauthorizedException("Invalid or expired token", details=str(e))
+        raise UnauthorizedException("Invalid or expired token", details=str(e)) from e

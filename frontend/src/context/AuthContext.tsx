@@ -13,6 +13,7 @@ interface AuthContextType {
   checkAuth: () => Promise<void>;
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {

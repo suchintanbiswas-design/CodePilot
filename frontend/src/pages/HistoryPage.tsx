@@ -21,7 +21,7 @@ export function HistoryPage() {
   const [displayedReviews, setDisplayedReviews] = useState<ReviewSummary[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [total, setTotal] = useState(0);
-  
+
   // Filters
   const [language, setLanguage] = useState('');
   const [minScore, setMinScore] = useState<number | undefined>();
@@ -38,12 +38,13 @@ export function HistoryPage() {
       } else {
         setLoading(true);
       }
-      
+
       const response = await reviewService.list({
         skip: isLoadMore ? skip : 0,
         limit: LIMIT,
       });
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedItems = response.items.map((r: any) => ({
         id: r.id,
         repositoryUrl: r.repo_url || r.title || 'Unknown',
@@ -51,7 +52,8 @@ export function HistoryPage() {
         status: r.status,
         overallScore: r.metadata?.quality_score || r.quality_score || 0,
         issuesFound: r.issues?.length || 0,
-        criticalIssues: r.issues?.filter((i: any) => i.severity === 'Critical')?.length || 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          criticalIssues: r.issues?.filter((i: any) => i.severity === 'Critical')?.length || 0,
         createdAt: r.created_at || r.updated_at || new Date().toISOString(),
         language: r.language?.name || '',
         techDebtScore: r.metadata?.tech_debt ?? r.tech_debt ?? r.review_metadata?.tech_debt ?? 0,
@@ -74,6 +76,7 @@ export function HistoryPage() {
   useEffect(() => {
     setSkip(0);
     fetchReviews(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -84,8 +87,9 @@ export function HistoryPage() {
       filtered = filtered.filter(r => r.repositoryUrl.toLowerCase().includes(query));
     }
 
-    if (language) {
-      filtered = filtered.filter(r => (r as any).language === language);
+
+      if (language) {
+      filtered = filtered.filter(r => (r as import("@/types/review").ReviewSummary & { language?: string }).language === language);
     }
 
     if (minScore) {
@@ -95,7 +99,8 @@ export function HistoryPage() {
     if (dateRange) {
       const now = new Date();
       const days = parseInt(dateRange);
-      filtered = filtered.filter(r => {
+
+    filtered = filtered.filter(r => {
          const reviewDate = new Date(r.createdAt);
          // Compare properly without timezone bugs
          const diffTime = Math.abs(now.getTime() - reviewDate.getTime());
@@ -105,8 +110,9 @@ export function HistoryPage() {
     }
 
     if (techDebt) {
-      filtered = filtered.filter(r => {
-         const score = (r as any).techDebtScore || 0;
+
+    filtered = filtered.filter(r => {
+         const score = (r as import("@/types/review").ReviewSummary & { techDebtScore?: number }).techDebtScore || 0;
          let category = 'Low';
          if (score > 75) category = 'High';
          else if (score > 50) category = 'Medium';
@@ -138,19 +144,19 @@ export function HistoryPage() {
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Review History</h1>
           <p className="text-[var(--color-text-secondary)] mt-1">Browse, search, and manage your past code reviews.</p>
         </div>
-        
+
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" size={16} />
-            <Input 
+            <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search repositories..."
               className="pl-9"
             />
           </div>
-          <Button 
-            variant={showFilters ? "primary" : "outline"} 
+          <Button
+            variant={showFilters ? "primary" : "outline"}
             onClick={() => setShowFilters(!showFilters)}
             className="shrink-0"
           >
@@ -164,7 +170,7 @@ export function HistoryPage() {
         <Card className="p-4 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 fade-in duration-200">
           <div>
             <label htmlFor="language-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Language</label>
-            <select 
+            <select
               id="language-filter"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -181,7 +187,7 @@ export function HistoryPage() {
           </div>
           <div>
             <label htmlFor="min-score-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Min Score</label>
-            <select 
+            <select
               id="min-score-filter"
               value={minScore || ''}
               onChange={(e) => setMinScore(e.target.value ? Number(e.target.value) : undefined)}
@@ -195,7 +201,7 @@ export function HistoryPage() {
           </div>
           <div>
             <label htmlFor="date-range-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Date Range</label>
-            <select 
+            <select
               id="date-range-filter"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
@@ -209,7 +215,7 @@ export function HistoryPage() {
           </div>
           <div>
             <label htmlFor="tech-debt-filter" className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">Tech Debt</label>
-            <select 
+            <select
               id="tech-debt-filter"
               value={techDebt}
               onChange={(e) => setTechDebt(e.target.value)}
@@ -336,14 +342,14 @@ export function HistoryPage() {
               </tbody>
             </table>
           </div>
-          
+
           <div className="p-4 border-t border-[var(--color-border)] flex items-center justify-between">
             <span className="text-sm text-[var(--color-text-secondary)]">Showing {displayedReviews.length} of {total} reviews</span>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                disabled={allReviews.length >= total || loadingMore} 
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={allReviews.length >= total || loadingMore}
                 onClick={handleLoadMore}
               >
                 {loadingMore ? 'Loading...' : 'Load More'}

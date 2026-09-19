@@ -64,7 +64,7 @@ export function IssueCard({ issue }: IssueCardProps) {
     <Card className="p-4 hover:border-[var(--color-primary-400)] transition-colors">
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <Badge variant={getSeverityVariant(issue.severity) as any}>
+          <Badge variant={getSeverityVariant(issue.severity) as "default" | "success" | "error" | "info" | "warning"}>
             {issue.severity.toUpperCase()}
           </Badge>
           <SourceBadge source={issue.source} />

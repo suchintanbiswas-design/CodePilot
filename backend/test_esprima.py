@@ -1,4 +1,5 @@
 import esprima
+
 code = "var x = ;\nconst y = 2"
 try:
     tree = esprima.parseScript(code, tolerant=True)

@@ -19,7 +19,9 @@ Covers:
 from app.engine.scoring_engine import ScoringEngine
 
 
-def _make_issue(severity="Low", confidence=100, rule_type="General", description="Test issue."):
+def _make_issue(
+    severity="Low", confidence=100, rule_type="General", description="Test issue."
+):
     """Helper to create a minimal issue dict."""
     return {
         "severity": severity,
@@ -74,13 +76,17 @@ class TestSeverityOrdering:
         """Each higher severity must produce a strictly higher impact and lower scores."""
         results = {}
         for sev in ["Low", "Medium", "High", "Critical"]:
-            result = self.engine.calculate_scores([_make_issue(severity=sev, confidence=100)])
+            result = self.engine.calculate_scores(
+                [_make_issue(severity=sev, confidence=100)]
+            )
             results[sev] = result
 
         # Overall quality decreases as severity increases
         assert results["Low"]["overall_quality"] > results["Medium"]["overall_quality"]
         assert results["Medium"]["overall_quality"] > results["High"]["overall_quality"]
-        assert results["High"]["overall_quality"] > results["Critical"]["overall_quality"]
+        assert (
+            results["High"]["overall_quality"] > results["Critical"]["overall_quality"]
+        )
 
     def test_severity_weights_exact(self):
         """Verify exact severity weight values."""
@@ -100,7 +106,9 @@ class TestConfidenceOrdering:
         """Higher confidence must produce a strictly higher impact and lower scores."""
         results = {}
         for conf in [10, 50, 75, 100]:
-            result = self.engine.calculate_scores([_make_issue(severity="High", confidence=conf)])
+            result = self.engine.calculate_scores(
+                [_make_issue(severity="High", confidence=conf)]
+            )
             results[conf] = result
 
         # Overall quality decreases as confidence increases (more certain → bigger penalty)
@@ -172,15 +180,22 @@ class TestSizeNormalization:
     def test_equal_density_equal_normalized_impact(self):
         """1000 LOC + 10 impact vs 500 LOC + 5 impact → same normalized impact."""
         # 10 High-confidence Critical issues → impact = 10 × 10 = 100
-        issues_large = [_make_issue(severity="Critical", confidence=100) for _ in range(10)]
+        issues_large = [
+            _make_issue(severity="Critical", confidence=100) for _ in range(10)
+        ]
         result_large = self.engine.calculate_scores(issues_large, lines_of_code=10000)
 
         # 5 High-confidence Critical issues → impact = 5 × 10 = 50
-        issues_small = [_make_issue(severity="Critical", confidence=100) for _ in range(5)]
+        issues_small = [
+            _make_issue(severity="Critical", confidence=100) for _ in range(5)
+        ]
         result_small = self.engine.calculate_scores(issues_small, lines_of_code=5000)
 
         # Normalized impact should be equal: 100/10 = 50/5 = 10
-        assert result_large["scoring_metadata"]["normalized_impact"] == result_small["scoring_metadata"]["normalized_impact"]
+        assert (
+            result_large["scoring_metadata"]["normalized_impact"]
+            == result_small["scoring_metadata"]["normalized_impact"]
+        )
 
     def test_larger_file_same_issues_better_normalized(self):
         """Same absolute issues, larger file → better normalized score (lower density)."""
@@ -190,7 +205,9 @@ class TestSizeNormalization:
         result_large = self.engine.calculate_scores(issues, lines_of_code=5000)
 
         # The larger file should have a better tech debt score
-        assert result_large["technical_debt_score"] >= result_small["technical_debt_score"]
+        assert (
+            result_large["technical_debt_score"] >= result_small["technical_debt_score"]
+        )
 
     def test_loc_k_minimum_guard(self):
         """LOC_K = max(LOC/1000, 1.0) → minimum is 1.0 for small/zero LOC."""
@@ -221,7 +238,10 @@ class TestIssueDensity:
         result_5 = self.engine.calculate_scores(issues_5, lines_of_code=2000)
         result_10 = self.engine.calculate_scores(issues_10, lines_of_code=2000)
 
-        assert result_10["scoring_metadata"]["normalized_issue_density"] > result_5["scoring_metadata"]["normalized_issue_density"]
+        assert (
+            result_10["scoring_metadata"]["normalized_issue_density"]
+            > result_5["scoring_metadata"]["normalized_issue_density"]
+        )
 
     def test_confidence_adjusted_count(self):
         """Confidence-adjusted count: 10 issues at 50% = 5.0 effective issues."""
@@ -241,9 +261,15 @@ class TestComplexityMonotonicity:
         """0 < 10 < 20 average complexity → maintainability strictly decreasing."""
         issues = [_make_issue()]
 
-        result_0 = self.engine.calculate_scores(issues, cyclomatic_complexity=0, num_functions=1)
-        result_10 = self.engine.calculate_scores(issues, cyclomatic_complexity=10, num_functions=1)
-        result_20 = self.engine.calculate_scores(issues, cyclomatic_complexity=20, num_functions=1)
+        result_0 = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=0, num_functions=1
+        )
+        result_10 = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=10, num_functions=1
+        )
+        result_20 = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=20, num_functions=1
+        )
 
         assert result_0["maintainability_score"] > result_10["maintainability_score"]
         assert result_10["maintainability_score"] > result_20["maintainability_score"]
@@ -253,18 +279,26 @@ class TestComplexityMonotonicity:
         issues = [_make_issue()]
 
         # 20 total / 4 functions = 5 average
-        result_avg5 = self.engine.calculate_scores(issues, cyclomatic_complexity=20, num_functions=4)
+        result_avg5 = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=20, num_functions=4
+        )
 
         # 20 total / 1 function = 20 average
-        result_avg20 = self.engine.calculate_scores(issues, cyclomatic_complexity=20, num_functions=1)
+        result_avg20 = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=20, num_functions=1
+        )
 
         # Well-factored code (avg 5) should score better than monolithic (avg 20)
-        assert result_avg5["maintainability_score"] > result_avg20["maintainability_score"]
+        assert (
+            result_avg5["maintainability_score"] > result_avg20["maintainability_score"]
+        )
 
     def test_zero_functions_fallback(self):
         """When num_functions=0, use total complexity as fallback."""
         issues = [_make_issue()]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=10, num_functions=0)
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=10, num_functions=0
+        )
         assert result["scoring_metadata"]["average_complexity"] == 10.0
 
 
@@ -280,18 +314,34 @@ class TestNonImprovement:
         extra_issue = _make_issue(severity="Low", confidence=50)
 
         result_base = self.engine.calculate_scores(base_issues, lines_of_code=1000)
-        result_more = self.engine.calculate_scores(base_issues + [extra_issue], lines_of_code=1000)
+        result_more = self.engine.calculate_scores(
+            base_issues + [extra_issue], lines_of_code=1000
+        )
 
         assert result_more["overall_quality"] <= result_base["overall_quality"]
-        assert result_more["technical_debt_score"] <= result_base["technical_debt_score"]
-        assert result_more["maintainability_score"] <= result_base["maintainability_score"]
+        assert (
+            result_more["technical_debt_score"] <= result_base["technical_debt_score"]
+        )
+        assert (
+            result_more["maintainability_score"] <= result_base["maintainability_score"]
+        )
 
     def test_adding_security_issue_never_improves_security(self):
         """Adding a security issue must not improve the security score."""
-        base_issues = [_make_issue(severity="High", confidence=100, rule_type="Security",
-                                   description="SQL injection vulnerability")]
-        extra_issue = _make_issue(severity="Low", confidence=50, rule_type="Security",
-                                  description="Unsafe eval usage")
+        base_issues = [
+            _make_issue(
+                severity="High",
+                confidence=100,
+                rule_type="Security",
+                description="SQL injection vulnerability",
+            )
+        ]
+        extra_issue = _make_issue(
+            severity="Low",
+            confidence=50,
+            rule_type="Security",
+            description="Unsafe eval usage",
+        )
 
         result_base = self.engine.calculate_scores(base_issues)
         result_more = self.engine.calculate_scores(base_issues + [extra_issue])
@@ -308,8 +358,12 @@ class TestBounds:
     def test_clamping_at_zero_overwhelming_issues(self):
         """20 Critical issues at 100% confidence must clamp all scores to 0."""
         issues = [
-            _make_issue(severity="Critical", confidence=100, rule_type="Security Performance",
-                        description="Terrible code.")
+            _make_issue(
+                severity="Critical",
+                confidence=100,
+                rule_type="Security Performance",
+                description="Terrible code.",
+            )
             for _ in range(20)
         ]
         result = self.engine.calculate_scores(issues, cyclomatic_complexity=500)
@@ -323,22 +377,36 @@ class TestBounds:
     def test_extreme_issue_count(self):
         """1000 Critical issues must still produce valid bounded scores."""
         issues = [_make_issue(severity="Critical", confidence=100) for _ in range(1000)]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=10000, lines_of_code=100)
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=10000, lines_of_code=100
+        )
 
-        for key in ["overall_quality", "security_score", "performance_score",
-                     "maintainability_score", "technical_debt_score"]:
+        for key in [
+            "overall_quality",
+            "security_score",
+            "performance_score",
+            "maintainability_score",
+            "technical_debt_score",
+        ]:
             assert 0 <= result[key] <= 100, f"{key} = {result[key]} out of bounds"
 
     def test_extreme_complexity(self):
         """Very high complexity must still produce valid bounded scores."""
-        result = self.engine.calculate_scores([], cyclomatic_complexity=100000, num_functions=1)
+        result = self.engine.calculate_scores(
+            [], cyclomatic_complexity=100000, num_functions=1
+        )
         assert 0 <= result["maintainability_score"] <= 100
 
     def test_no_issues_never_exceeds_100(self):
         """With no issues, no score should exceed 100."""
         result = self.engine.calculate_scores([], lines_of_code=100000)
-        for key in ["overall_quality", "security_score", "performance_score",
-                     "maintainability_score", "technical_debt_score"]:
+        for key in [
+            "overall_quality",
+            "security_score",
+            "performance_score",
+            "maintainability_score",
+            "technical_debt_score",
+        ]:
             assert result[key] <= 100
 
 
@@ -351,12 +419,22 @@ class TestOverallScore:
     def test_weighted_sum_exact(self):
         """Overall quality must be the exact weighted sum of sub-scores."""
         issues = [
-            _make_issue(severity="High", confidence=80, rule_type="Security",
-                        description="Missing authentication."),
-            _make_issue(severity="Medium", confidence=100, rule_type="Best Practices",
-                        description="Inefficient loop detected."),
+            _make_issue(
+                severity="High",
+                confidence=80,
+                rule_type="Security",
+                description="Missing authentication.",
+            ),
+            _make_issue(
+                severity="Medium",
+                confidence=100,
+                rule_type="Best Practices",
+                description="Inefficient loop detected.",
+            ),
         ]
-        result = self.engine.calculate_scores(issues, lines_of_code=2000, num_functions=3)
+        result = self.engine.calculate_scores(
+            issues, lines_of_code=2000, num_functions=3
+        )
 
         expected_overall = (
             0.30 * result["security_score"]
@@ -390,7 +468,9 @@ class TestMissingZeroValues:
 
     def test_zero_functions(self):
         """Zero functions must not raise (falls back to total complexity)."""
-        result = self.engine.calculate_scores([_make_issue()], cyclomatic_complexity=10, num_functions=0)
+        result = self.engine.calculate_scores(
+            [_make_issue()], cyclomatic_complexity=10, num_functions=0
+        )
         assert 0 <= result["overall_quality"] <= 100
 
     def test_missing_confidence(self):
@@ -506,7 +586,7 @@ class TestRegressionV1:
                 "confidence": 100,
                 "rule_type": "Style",
                 "description": "Unused variable.",
-            }
+            },
         ]
         result = self.engine.calculate_scores(issues)
         assert result["security_score"] == 83
@@ -564,6 +644,7 @@ class TestRealCodeIntegration:
     def test_security_score_with_real_code(self):
         """Test that submitting insecure code legitimately lowers the security score."""
         from app.engine.static_analyzer import StaticAnalyzer
+
         analyzer = StaticAnalyzer()
 
         insecure_code = 'password = "admin123"\neval(input())'
@@ -573,7 +654,9 @@ class TestRealCodeIntegration:
 
         insecure_result = self.engine.calculate_scores(issues)
 
-        secure_code = 'import os\npassword = os.getenv("APP_PASSWORD")\nprint("Connecting to DB")'
+        secure_code = (
+            'import os\npassword = os.getenv("APP_PASSWORD")\nprint("Connecting to DB")'
+        )
         secure_issues = analyzer.analyze(secure_code, "Python")
         for issue in secure_issues:
             issue["confidence"] = 100
@@ -594,10 +677,11 @@ class TestRealCodeIntegration:
         PY_NESTED_LOOP_COMPLEXITY (rule_type: Performance).
         """
         from app.engine.static_analyzer import StaticAnalyzer
+
         analyzer = StaticAnalyzer()
 
         # Code with nested loops — genuine algorithmic performance concern
-        inefficient_code = 'for a in data:\n    for b in data:\n        process(a, b)\n'
+        inefficient_code = "for a in data:\n    for b in data:\n        process(a, b)\n"
         issues = analyzer.analyze(inefficient_code, "Python")
         for issue in issues:
             issue["confidence"] = 100
@@ -605,7 +689,7 @@ class TestRealCodeIntegration:
         inefficient_result = self.engine.calculate_scores(issues)
 
         # Code without nested loops — no performance concern
-        efficient_code = 'for a in data:\n    process(a)\n'
+        efficient_code = "for a in data:\n    process(a)\n"
         efficient_issues = analyzer.analyze(efficient_code, "Python")
         for issue in efficient_issues:
             issue["confidence"] = 100
@@ -613,7 +697,10 @@ class TestRealCodeIntegration:
         efficient_result = self.engine.calculate_scores(efficient_issues)
 
         assert inefficient_result["performance_score"] < 100
-        assert efficient_result["performance_score"] >= inefficient_result["performance_score"]
+        assert (
+            efficient_result["performance_score"]
+            >= inefficient_result["performance_score"]
+        )
         assert efficient_result["performance_score"] == 100
 
 
@@ -641,6 +728,7 @@ class TestGradeMapping:
 # Performance Category Classification Regression
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestPerformanceCategoryRegression:
     """Regression tests for the 'complexity' keyword removal from PERFORMANCE_KEYWORDS."""
 
@@ -657,10 +745,12 @@ class TestPerformanceCategoryRegression:
                 "description": "Complex condition, refactor into smaller methods",
             }
         ]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
-        assert result["performance_score"] == 100, (
-            "COMPLEX_CONDITION findings should NOT penalize Performance Score"
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1
         )
+        assert (
+            result["performance_score"] == 100
+        ), "COMPLEX_CONDITION findings should NOT penalize Performance Score"
 
     def test_multiple_complexity_findings_no_performance_penalty(self):
         """Multiple COMPLEX_CONDITION findings must not affect performance."""
@@ -673,7 +763,9 @@ class TestPerformanceCategoryRegression:
             }
             for _ in range(5)
         ]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=10, lines_of_code=100, num_functions=3)
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=10, lines_of_code=100, num_functions=3
+        )
         assert result["performance_score"] == 100
 
     def test_performance_rule_type_does_affect_performance(self):
@@ -686,10 +778,12 @@ class TestPerformanceCategoryRegression:
                 "description": "Nested loops may introduce O(n^2)-style algorithmic complexity",
             }
         ]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
-        assert result["performance_score"] < 100, (
-            "Performance-typed findings MUST penalize Performance Score"
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1
         )
+        assert (
+            result["performance_score"] < 100
+        ), "Performance-typed findings MUST penalize Performance Score"
 
     def test_nested_loop_keyword_affects_performance(self):
         """A finding with 'nested_loop' in description must affect performance."""
@@ -701,7 +795,9 @@ class TestPerformanceCategoryRegression:
                 "description": "nested_loop complexity detected",
             }
         ]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=5, lines_of_code=50, num_functions=1
+        )
         assert result["performance_score"] < 100
 
     def test_complexity_still_affects_maintainability(self):
@@ -714,6 +810,8 @@ class TestPerformanceCategoryRegression:
                 "description": "Complex condition, refactor into smaller methods",
             }
         ]
-        result = self.engine.calculate_scores(issues, cyclomatic_complexity=15, lines_of_code=50, num_functions=1)
+        result = self.engine.calculate_scores(
+            issues, cyclomatic_complexity=15, lines_of_code=50, num_functions=1
+        )
         # Maintainability MUST be penalized (it uses total_impact and complexity, not keywords)
         assert result["maintainability_score"] < 100

@@ -42,10 +42,10 @@ BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from app.engine.static_analyzer import StaticAnalyzer
-from app.engine.hybrid_engine import HybridEngine
 from app.engine.confidence_engine import ConfidenceEngine
+from app.engine.hybrid_engine import HybridEngine
 from app.engine.scoring_engine import ScoringEngine
+from app.engine.static_analyzer import StaticAnalyzer
 
 
 def count_functions(code: str) -> int:
@@ -53,8 +53,13 @@ def count_functions(code: str) -> int:
     return len(re.findall(r"^\s*def\s+\w+", code, re.MULTILINE))
 
 
-def run_single(filepath: str, analyzer: StaticAnalyzer, hybrid: HybridEngine,
-               confidence: ConfidenceEngine, scorer: ScoringEngine) -> dict:
+def run_single(
+    filepath: str,
+    analyzer: StaticAnalyzer,
+    hybrid: HybridEngine,
+    confidence: ConfidenceEngine,
+    scorer: ScoringEngine,
+) -> dict:
     """Run the full CodePilot pipeline on a single Python file."""
     with open(filepath, "r", encoding="utf-8") as f:
         code = f.read()
@@ -71,7 +76,13 @@ def run_single(filepath: str, analyzer: StaticAnalyzer, hybrid: HybridEngine,
     fname = os.path.basename(filepath)
     if "severity_" in fname:
         sev = fname.split("_")[1].replace(".py", "").capitalize()
-        raw_issues = [{"severity": sev, "description": "Synthetic severity test", "rule_type": "Security"}]
+        raw_issues = [
+            {
+                "severity": sev,
+                "description": "Synthetic severity test",
+                "rule_type": "Security",
+            }
+        ]
         complexity = 5
         num_functions = 1
         loc = 50
@@ -80,19 +91,34 @@ def run_single(filepath: str, analyzer: StaticAnalyzer, hybrid: HybridEngine,
         loc = int(fname.split("_")[1].replace(".py", ""))
         # 1 issue per 500 lines
         issue_count = loc // 500
-        raw_issues = [{"severity": "Medium", "description": "Synthetic size test", "rule_type": "Style"} for _ in range(issue_count)]
+        raw_issues = [
+            {
+                "severity": "Medium",
+                "description": "Synthetic size test",
+                "rule_type": "Style",
+            }
+            for _ in range(issue_count)
+        ]
         complexity = 5 * issue_count
         num_functions = issue_count
     elif "complexity_" in fname:
         level = fname.split("_")[1].replace(".py", "")
         comp_map = {"low": 5, "medium": 10, "high": 20}
-        complexity = comp_map.get(level, 5) * 4 # 4 functions
+        complexity = comp_map.get(level, 5) * 4  # 4 functions
         num_functions = 4
         loc = 50
-        raw_issues = [{"severity": "Low", "description": "Base issue", "rule_type": "Style"}]
+        raw_issues = [
+            {"severity": "Low", "description": "Base issue", "rule_type": "Style"}
+        ]
     elif "confidence_" in fname:
         # Tested below via a special loop, but for the base file just return standard
-        raw_issues = [{"severity": "Medium", "description": "Synthetic conf test", "rule_type": "Style"}]
+        raw_issues = [
+            {
+                "severity": "Medium",
+                "description": "Synthetic conf test",
+                "rule_type": "Style",
+            }
+        ]
         complexity = 5
         num_functions = 1
         loc = 50
@@ -132,7 +158,9 @@ def run_single(filepath: str, analyzer: StaticAnalyzer, hybrid: HybridEngine,
         "average_complexity": meta.get("average_complexity", 0),
         "total_impact": meta.get("total_impact", 0),
         "normalized_impact": meta.get("normalized_impact", 0),
-        "confidence_adjusted_issue_count": meta.get("confidence_adjusted_issue_count", 0),
+        "confidence_adjusted_issue_count": meta.get(
+            "confidence_adjusted_issue_count", 0
+        ),
         "loc_k": meta.get("loc_k", 1.0),
     }
 
@@ -180,17 +208,29 @@ def main():
         print("ERROR: No benchmark files found.")
         sys.exit(1)
 
-    print(f"Discovered {len(benchmark_files)} benchmark samples, {len(model_files)} model property files.")
-    print(f"Running CodePilot pipeline (Static-only, no Gemini)...\n")
+    print(
+        f"Discovered {len(benchmark_files)} benchmark samples, {len(model_files)} model property files."
+    )
+    print("Running CodePilot pipeline (Static-only, no Gemini)...\n")
 
     # Run pipeline
     results = []
     fieldnames = [
-        "file", "loc", "num_functions", "issue_count",
-        "security_score", "performance_score", "maintainability_score",
-        "maintainability_grade", "technical_debt_health", "overall_quality",
-        "average_complexity", "total_impact", "normalized_impact",
-        "confidence_adjusted_issue_count", "loc_k",
+        "file",
+        "loc",
+        "num_functions",
+        "issue_count",
+        "security_score",
+        "performance_score",
+        "maintainability_score",
+        "maintainability_grade",
+        "technical_debt_health",
+        "overall_quality",
+        "average_complexity",
+        "total_impact",
+        "normalized_impact",
+        "confidence_adjusted_issue_count",
+        "loc_k",
     ]
 
     for filepath in all_files:
@@ -201,11 +241,21 @@ def main():
                     result = run_single(filepath, analyzer, hybrid, confidence, scorer)
                     # Force the confidence
                     # We need to re-run scoring with forced confidence
-                    raw_issues = [{"severity": "Medium", "description": "Synthetic conf test", "rule_type": "Security", "source": "Static"}]
                     # hybrid/confidence bypass for pure math test
-                    unified = [{"severity": "Medium", "confidence": conf, "rule_type": "Security"}]
-                    scores = scorer.calculate_scores(unified, cyclomatic_complexity=5, lines_of_code=50, num_functions=1)
-                    
+                    unified = [
+                        {
+                            "severity": "Medium",
+                            "confidence": conf,
+                            "rule_type": "Security",
+                        }
+                    ]
+                    scores = scorer.calculate_scores(
+                        unified,
+                        cyclomatic_complexity=5,
+                        lines_of_code=50,
+                        num_functions=1,
+                    )
+
                     meta = scores.get("scoring_metadata", {})
                     result = {
                         "file": f"confidence_{conf}.py",
@@ -221,22 +271,28 @@ def main():
                         "average_complexity": meta.get("average_complexity", 0),
                         "total_impact": meta.get("total_impact", 0),
                         "normalized_impact": meta.get("normalized_impact", 0),
-                        "confidence_adjusted_issue_count": meta.get("confidence_adjusted_issue_count", 0),
+                        "confidence_adjusted_issue_count": meta.get(
+                            "confidence_adjusted_issue_count", 0
+                        ),
                         "loc_k": meta.get("loc_k", 1.0),
                     }
                     results.append(result)
-                    print(f"  [+] {result['file']:30s}  OQ={result['overall_quality']:3d}  "
-                          f"Sec={result['security_score']:3d}  Perf={result['performance_score']:3d}  "
-                          f"Maint={result['maintainability_score']:3d}({result['maintainability_grade']})  "
-                          f"TD={result['technical_debt_health']:3d}  Issues={result['issue_count']}")
+                    print(
+                        f"  [+] {result['file']:30s}  OQ={result['overall_quality']:3d}  "
+                        f"Sec={result['security_score']:3d}  Perf={result['performance_score']:3d}  "
+                        f"Maint={result['maintainability_score']:3d}({result['maintainability_grade']})  "
+                        f"TD={result['technical_debt_health']:3d}  Issues={result['issue_count']}"
+                    )
                 continue
 
             result = run_single(filepath, analyzer, hybrid, confidence, scorer)
             results.append(result)
-            print(f"  [+] {result['file']:30s}  OQ={result['overall_quality']:3d}  "
-                  f"Sec={result['security_score']:3d}  Perf={result['performance_score']:3d}  "
-                  f"Maint={result['maintainability_score']:3d}({result['maintainability_grade']})  "
-                  f"TD={result['technical_debt_health']:3d}  Issues={result['issue_count']}")
+            print(
+                f"  [+] {result['file']:30s}  OQ={result['overall_quality']:3d}  "
+                f"Sec={result['security_score']:3d}  Perf={result['performance_score']:3d}  "
+                f"Maint={result['maintainability_score']:3d}({result['maintainability_grade']})  "
+                f"TD={result['technical_debt_health']:3d}  Issues={result['issue_count']}"
+            )
         except Exception as e:
             print(f"  [-] {os.path.basename(filepath):30s}  ERROR: {e}")
 

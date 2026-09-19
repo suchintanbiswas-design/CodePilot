@@ -1,7 +1,4 @@
 """Regression tests for authoritative language detection resolution."""
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
-from uuid import uuid4
 
 
 def make_lang_detection(selected, detected, confidence):
@@ -18,7 +15,11 @@ def make_lang_detection(selected, detected, confidence):
 
 def resolve_final_language(selected, detected, confidence):
     """Replicates the resolution logic from review_service._process_single_file."""
-    if detected != "Unknown" and detected.lower() != selected.lower() and confidence >= 25:
+    if (
+        detected != "Unknown"
+        and detected.lower() != selected.lower()
+        and confidence >= 25
+    ):
         return detected, True
     return selected, False
 
@@ -90,7 +91,11 @@ class TestLangDetectionMetadata:
         confidence = detection["confidence"]
         selected = detection["selected_language"]
 
-        if detected != "Unknown" and detected.lower() != selected.lower() and confidence >= 25:
+        if (
+            detected != "Unknown"
+            and detected.lower() != selected.lower()
+            and confidence >= 25
+        ):
             detection["final_language"] = detected
             detection["language_switched"] = True
         else:
@@ -109,7 +114,11 @@ class TestLangDetectionMetadata:
         confidence = detection["confidence"]
         selected = detection["selected_language"]
 
-        if detected != "Unknown" and detected.lower() != selected.lower() and confidence >= 25:
+        if (
+            detected != "Unknown"
+            and detected.lower() != selected.lower()
+            and confidence >= 25
+        ):
             detection["final_language"] = detected
             detection["language_switched"] = True
         else:
@@ -125,7 +134,11 @@ class TestLangDetectionMetadata:
         confidence = detection["confidence"]
         selected = detection["selected_language"]
 
-        if detected != "Unknown" and detected.lower() != selected.lower() and confidence >= 25:
+        if (
+            detected != "Unknown"
+            and detected.lower() != selected.lower()
+            and confidence >= 25
+        ):
             detection["final_language"] = detected
             detection["language_switched"] = True
         else:

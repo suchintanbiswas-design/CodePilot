@@ -36,14 +36,15 @@ class UserService:
         self, db: AsyncSession, user_id: UUID, preferences: dict
     ) -> dict:
         from app.models.settings import UserSettings
+
         stmt = select(UserSettings).where(UserSettings.user_id == user_id)
         result = await db.execute(stmt)
         settings = result.scalars().first()
-        
+
         if not settings:
             settings = UserSettings(user_id=user_id, preferences={})
             db.add(settings)
-            
+
         settings.preferences = preferences
         await db.commit()
         return settings.preferences
@@ -51,29 +52,31 @@ class UserService:
     async def change_password(
         self, db: AsyncSession, user_id: UUID, current_password: str, new_password: str
     ) -> bool:
-        from app.utils.security import verify_password, hash_password
+        from app.utils.security import hash_password, verify_password
+
         user = await self.get_profile(db, user_id)
         if not user:
             return False
-            
+
         if not verify_password(current_password, user.password_hash):
             return False
-            
+
         user.password_hash = hash_password(new_password)
-        
+
         # Create security notification
-        from app.models.notification import Notification
         import uuid
-        
+
+        from app.models.notification import Notification
+
         notif = Notification(
             user_id=user_id,
             title="Security Alert",
             message="Your password was successfully changed.",
             type="security",
-            reference_id=f"pwd_{uuid.uuid4()}"
+            reference_id=f"pwd_{uuid.uuid4()}",
         )
         db.add(notif)
-        
+
         await db.commit()
         return True
 

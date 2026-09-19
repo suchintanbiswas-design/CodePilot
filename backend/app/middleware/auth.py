@@ -37,7 +37,7 @@ async def get_current_user(
         return user
     except Exception as e:
         logger.error(f"Error in get_current_user: {e}")
-        raise UnauthorizedException("Could not validate credentials")
+        raise UnauthorizedException("Could not validate credentials") from e
 
 
 async def require_admin(user: User = Depends(get_current_user)) -> User:

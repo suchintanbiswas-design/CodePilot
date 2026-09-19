@@ -1,5 +1,7 @@
 """Tests for deterministic syntax validation."""
+
 import pytest
+
 from app.engine.syntax_validator import SyntaxValidator
 
 
@@ -36,18 +38,18 @@ class TestPython:
 # ---------------------------------------------------------------
 class TestJava:
     def test_valid_java(self, validator):
-        code = '''import java.util.*;
+        code = """import java.util.*;
 public class Hello {
     public static void main(String[] args) {
         System.out.println("hello");
     }
 }
-'''
+"""
         issues = validator.validate(code, "Java")
         assert len(issues) == 0
 
     def test_invalid_java_string_literal(self, validator):
-        code = '''import java.util.*;
+        code = """import java.util.*;
 public class Getea
 {
     public static void main(String args[])
@@ -55,19 +57,19 @@ public class Getea
         System.out.println(hello world")
     }
 }
-'''
+"""
         issues = validator.validate(code, "Java")
         assert len(issues) >= 1
         assert issues[0]["severity"] == "Critical"
         assert issues[0]["rule_type"] == "Syntax"
 
     def test_invalid_java_missing_brace(self, validator):
-        code = '''public class Bad {
+        code = """public class Bad {
     public static void main(String[] args) {
         System.out.println("hi");
 
 }
-'''
+"""
         issues = validator.validate(code, "Java")
         assert len(issues) >= 1
 
@@ -77,21 +79,21 @@ public class Getea
 # ---------------------------------------------------------------
 class TestC:
     def test_valid_c(self, validator):
-        code = '''#include <stdio.h>
+        code = """#include <stdio.h>
 int main() {
     printf("hello");
     return 0;
 }
-'''
+"""
         issues = validator.validate(code, "C")
         assert len(issues) == 0
 
     def test_invalid_c_missing_semicolon(self, validator):
-        code = '''int main() {
+        code = """int main() {
     int x = 5
     return 0;
 }
-'''
+"""
         issues = validator.validate(code, "C")
         assert len(issues) >= 1
         assert issues[0]["severity"] == "Critical"
@@ -102,21 +104,21 @@ int main() {
 # ---------------------------------------------------------------
 class TestCpp:
     def test_valid_cpp(self, validator):
-        code = '''#include <iostream>
+        code = """#include <iostream>
 int main() {
     std::cout << "hello" << std::endl;
     return 0;
 }
-'''
+"""
         issues = validator.validate(code, "C++")
         assert len(issues) == 0
 
     def test_invalid_cpp_unclosed_brace(self, validator):
-        code = '''#include <iostream>
+        code = """#include <iostream>
 int main() {
     std::cout << "hello" << std::endl;
 
-'''
+"""
         issues = validator.validate(code, "C++")
         assert len(issues) >= 1
         assert issues[0]["severity"] == "Critical"
@@ -144,15 +146,16 @@ class TestJavaScript:
 # ---------------------------------------------------------------
 class TestTypeScript:
     def test_valid_ts(self, validator):
-        code = 'function greet(name: string): void {\n  console.log(name);\n}\n'
+        code = "function greet(name: string): void {\n  console.log(name);\n}\n"
         issues = validator.validate(code, "TypeScript")
         assert len(issues) == 0
 
     def test_invalid_ts_syntax(self, validator):
-        code = 'function greet(name: string {\n  console.log(name);\n}\n'
+        code = "function greet(name: string {\n  console.log(name);\n}\n"
         issues = validator.validate(code, "TypeScript")
         assert len(issues) >= 1
         assert issues[0]["severity"] == "Critical"
+
     def test_typescript_casts_valid(self, validator):
         code = """
 const a = JSON.parse("{}") as any;
@@ -204,7 +207,7 @@ const text = "user?.name";
         assert len(issues) == 0
 
     def test_typescript_union_types_valid(self, validator):
-        code = '''
+        code = """
 function getUser(): User | null {
     return null;
 }
@@ -218,8 +221,8 @@ let item: A & B;
 function load(): Promise<User> | null {
     return null;
 }
-'''
-        issues = validator.validate(code, 'TypeScript')
+"""
+        issues = validator.validate(code, "TypeScript")
         assert len(issues) == 0
 
     def test_typescript_full_e2e_valid(self, validator):
@@ -273,11 +276,11 @@ class TestLanguageResolutionIntegration:
     def test_selected_python_detected_java_invalid_java(self, validator):
         """Selected Python, Detected Java (89%), Final Java.
         Code is invalid Java → should produce Java syntax error."""
-        invalid_java = '''public class Test {
+        invalid_java = """public class Test {
     public static void main(String[] args) {
         System.out.println(hello world")
     }
-}'''
+}"""
         # Validator receives the FINAL language (Java), not the selected (Python)
         issues = validator.validate(invalid_java, "Java")
         assert len(issues) >= 1

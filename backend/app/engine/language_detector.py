@@ -18,17 +18,17 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Detection result
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class DetectionResult:
     """Result returned by ``LanguageDetector.detect()``."""
 
-    detected_language: str          # e.g. "Python", "Java", "Unknown"
-    confidence: int                 # 0-100
+    detected_language: str  # e.g. "Python", "Java", "Unknown"
+    confidence: int  # 0-100
     evidence: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -43,9 +43,11 @@ class DetectionResult:
 # Fingerprint definitions
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _Fingerprint:
     """A single syntax fingerprint."""
+
     pattern: re.Pattern[str]
     weight: float
     label: str
@@ -78,14 +80,18 @@ _PYTHON_FINGERPRINTS: List[_Fingerprint] = [
 
 _JAVA_FINGERPRINTS: List[_Fingerprint] = [
     _fp(r"\bpublic\s+class\s+\w+", 4, "Java public class declaration detected"),
-    _fp(r"\bprivate\s+(static\s+)?\w+\s+\w+", 2.5, "Java private field/method detected"),
+    _fp(
+        r"\bprivate\s+(static\s+)?\w+\s+\w+", 2.5, "Java private field/method detected"
+    ),
     _fp(r"\bstatic\s+void\s+main\s*\(", 4, "Java main method detected"),
     _fp(r"\bSystem\.out\.print(ln)?\s*\(", 3, "Java System.out.println detected"),
     _fp(r"\bnew\s+[A-Z]\w*\s*\(", 1.5, "Java new-object instantiation detected"),
     _fp(r"\bimport\s+java\.", 4, "Java java.* import detected"),
     _fp(r"\bpackage\s+[\w.]+;", 3.5, "Java package declaration detected"),
     _fp(r"\bpublic\s+static\s+", 2, "Java public static modifier detected"),
-    _fp(r"\b(String|int|boolean|double|float|void)\b", 1.5, "Java type keyword detected"),
+    _fp(
+        r"\b(String|int|boolean|double|float|void)\b", 1.5, "Java type keyword detected"
+    ),
     _fp(r"\b(extends|implements)\s+\w+", 2, "Java extends/implements detected"),
     _fp(r"\b(try|catch|finally)\s*\{?", 1, "Java try/catch/finally detected"),
     _fp(r"@Override", 2, "Java @Override annotation detected"),
@@ -102,25 +108,41 @@ _JAVASCRIPT_FINGERPRINTS: List[_Fingerprint] = [
     _fp(r"===|!==", 1.5, "JavaScript strict equality detected"),
     _fp(r"\basync\s+function\b", 2, "JavaScript async function detected"),
     _fp(r"\bawait\s+", 1, "JavaScript await keyword detected"),
-    _fp(r"\bexport\s+(default\s+)?function\b", 2, "JavaScript/ES6 export function detected"),
+    _fp(
+        r"\bexport\s+(default\s+)?function\b",
+        2,
+        "JavaScript/ES6 export function detected",
+    ),
     _fp(r"\bimport\s+.*\s+from\s+['\"]", 2, "ES6 import-from syntax detected"),
 ]
 
 _TYPESCRIPT_FINGERPRINTS: List[_Fingerprint] = [
     # TS-specific patterns (on top of JS patterns)
     _fp(r"\binterface\s+\w+\s*\{", 4, "TypeScript interface declaration detected"),
-    _fp(r":\s*(string|number|boolean|any|void|never|unknown)\b", 3, "TypeScript type annotation detected"),
+    _fp(
+        r":\s*(string|number|boolean|any|void|never|unknown)\b",
+        3,
+        "TypeScript type annotation detected",
+    ),
     _fp(r"\btype\s+\w+\s*=", 3.5, "TypeScript type alias detected"),
     _fp(r"\benum\s+\w+\s*\{", 3.5, "TypeScript enum declaration detected"),
     _fp(r"<\w+(\s*,\s*\w+)*>", 1.5, "TypeScript/Java generic syntax detected"),
     _fp(r"\bas\s+\w+", 1.5, "TypeScript type assertion detected"),
     _fp(r"\bimport\s+.*\s+from\s+['\"]", 1.5, "ES6/TS import-from detected"),
     # Also include common JS patterns to build score
-    _fp(r"\b(const|let)\s+\w+\s*[:=]", 1.5, "const/let variable with type annotation detected"),
+    _fp(
+        r"\b(const|let)\s+\w+\s*[:=]",
+        1.5,
+        "const/let variable with type annotation detected",
+    ),
     _fp(r"=>\s*(\{|[^{])", 1.5, "Arrow function expression detected"),
     _fp(r"\bconsole\.(log|warn|error)\s*\(", 1, "console.log detected"),
     _fp(r"\basync\s+", 1, "async keyword detected"),
-    _fp(r"\bexport\s+(default\s+)?(class|function|const|interface|type)\b", 2, "TypeScript export detected"),
+    _fp(
+        r"\bexport\s+(default\s+)?(class|function|const|interface|type)\b",
+        2,
+        "TypeScript export detected",
+    ),
 ]
 
 _C_FINGERPRINTS: List[_Fingerprint] = [
@@ -172,7 +194,7 @@ _EXTENSION_MAP: Dict[str, str] = {
     ".tsx": "TypeScript",
     ".jsx": "JavaScript",
     ".c": "C",
-    ".h": "C",       # could be C or C++, treated as C signal
+    ".h": "C",  # could be C or C++, treated as C signal
     ".cpp": "C++",
     ".cxx": "C++",
     ".cc": "C++",
@@ -183,6 +205,7 @@ _EXTENSION_MAP: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 # LanguageDetector
 # ---------------------------------------------------------------------------
+
 
 class LanguageDetector:
     """Deterministic fingerprint-based language detector for CodePilot."""

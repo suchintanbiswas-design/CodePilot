@@ -14,6 +14,7 @@ interface ThemeProviderState {
   toggleTheme: () => void;
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export const ThemeContext = createContext<ThemeProviderState | undefined>(undefined);
 
 export function ThemeProvider({

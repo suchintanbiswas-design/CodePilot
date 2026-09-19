@@ -58,7 +58,7 @@ class TestConfidenceEngine:
         # Strong match (>= 0.7) -> +3
         issue_strong = {
             "source": "Static + AI",
-            "severity": "Medium", # 95 + 1 = 96
+            "severity": "Medium",  # 95 + 1 = 96
             "match_score": 0.75,  # 96 + 3 = 99
         }
         assert self.engine.calculate(issue_strong) == 99
@@ -66,8 +66,8 @@ class TestConfidenceEngine:
         # Weak match (< 0.7) -> 0
         issue_weak = {
             "source": "Static + AI",
-            "severity": "Low", # 95 + 0 = 95
-            "match_score": 0.5, # 95 + 0 = 95
+            "severity": "Low",  # 95 + 0 = 95
+            "match_score": 0.5,  # 95 + 0 = 95
         }
         assert self.engine.calculate(issue_weak) == 95
 
@@ -88,7 +88,7 @@ class TestConfidenceEngine:
             def calculate(self, issue):
                 score = -50
                 return max(0, min(100, score))
-        
+
         custom_engine = CustomConfidenceEngine()
         issue = {"source": "Static"}
         assert custom_engine.calculate(issue) == 0

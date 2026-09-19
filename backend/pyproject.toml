@@ -7,19 +7,24 @@ exclude = [
     "alembic",
     "env",
     "venv",
+    "validation/benchmark",
+    "validation/holdout",
 ]
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "C",  # flake8-comprehensions
-    "B",  # flake8-bugbear
+    "E",
+    "W",
+    "F",
+    "I",
+    "C",
+    "B",
 ]
 ignore = [
-    "E501",  # line too long, handled by black
+    "E501",
+    "B008",
+    "C901",
+    "E402",
 ]
 
 [tool.black]
@@ -34,5 +39,7 @@ exclude = '''
   | build
   | dist
   | alembic
+  | validation/benchmark
+  | validation/holdout
 )/
 '''

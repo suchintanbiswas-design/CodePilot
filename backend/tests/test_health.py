@@ -9,6 +9,7 @@ async def test_health_check(client: AsyncClient, override_get_db):
     data = response.json()
     assert data["status"] in ["healthy", "degraded"]
 
+
 @pytest.mark.asyncio
 async def test_ready_check(client: AsyncClient, override_get_db):
     response = await client.get("/ready")

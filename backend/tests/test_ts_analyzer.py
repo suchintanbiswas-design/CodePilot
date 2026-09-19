@@ -1,12 +1,13 @@
 """Tests for TypeScriptSemanticAnalyzer — Phase 1 rules."""
-import pytest
-from app.engine.ts_analyzer import TypeScriptSemanticAnalyzer
-from app.engine.static_analyzer import StaticAnalyzer
+
 from app.engine.hybrid_engine import HybridEngine
+from app.engine.static_analyzer import StaticAnalyzer
+from app.engine.ts_analyzer import TypeScriptSemanticAnalyzer
 
 # ═══════════════════════════════════════════════════════════════════
 # TS_UNSAFE_ANY_DECLARATION
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestUnsafeAnyDeclaration:
     """TS_UNSAFE_ANY_DECLARATION rule."""
@@ -62,9 +63,11 @@ class TestUnsafeAnyDeclaration:
         any_decl = [i for i in issues if i["rule_name"] == "TS_UNSAFE_ANY_DECLARATION"]
         assert len(any_decl) == 0
 
+
 # ═══════════════════════════════════════════════════════════════════
 # TS_EXPLICIT_ANY_CAST
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestExplicitAnyCast:
     """TS_EXPLICIT_ANY_CAST rule."""
@@ -99,9 +102,11 @@ class TestExplicitAnyCast:
         cast = [i for i in issues if i["rule_name"] == "TS_EXPLICIT_ANY_CAST"]
         assert len(cast) == 0
 
+
 # ═══════════════════════════════════════════════════════════════════
 # Lexical Safety
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestLexicalSafety:
     """Verify that comments and strings containing 'any' do not false positive."""
@@ -124,7 +129,9 @@ class TestLexicalSafety:
         issues = analyzer.analyze(code)
         assert len(issues) == 0
 
+
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNonNullAssertion:
     def test_non_null_property_detected(self):
@@ -163,23 +170,24 @@ class TestNonNullAssertion:
 
     def test_comments_and_strings_ignored(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         // The factorial is 5!
         const msg = "Error!";
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 0
+
 
 class TestBannedTypes:
     def test_banned_types_detected(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         let name: String;
         let enabled: Boolean;
         let count: Number;
         let data: Object;
         let key: Symbol;
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 5
         types = [i["description"] for i in issues]
@@ -203,34 +211,35 @@ class TestBannedTypes:
 
     def test_lowercase_primitives_ignored(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         let name: string;
         let enabled: boolean;
         let count: number;
         let data: object;
         let key: symbol;
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 0
 
     def test_unrelated_identifiers_ignored(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         let String = 5;
         const obj = { String: 12 };
         const myString = String("hello");
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 0
 
     def test_comments_and_strings_ignored(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         // let x: String;
         const msg = "value: Number";
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 0
+
 
 class TestCompilerIgnore:
     def test_ts_ignore_detected(self):
@@ -258,22 +267,22 @@ class TestCompilerIgnore:
 
     def test_whitespace_variations_detected(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         //    @ts-ignore
         //@ts-ignore
         // @ts-nocheck
-        '''
+        """
         issues = analyzer.analyze(code)
         assert len(issues) == 3
 
     def test_multiple_directives_detected_separately(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = '''
+        code = """
         // @ts-ignore
         const value: any = getValue();
-        
+
         // @ts-nocheck
-        '''
+        """
         issues = analyzer.analyze(code)
         ignore_issues = [i for i in issues if i["rule_name"] == "TS_COMPILER_IGNORE"]
         assert len(ignore_issues) == 2
@@ -294,7 +303,7 @@ class TestCompilerIgnore:
 
     def test_template_literal_containing_ignore_not_detected(self):
         analyzer = TypeScriptSemanticAnalyzer()
-        code = 'const text = `// @ts-ignore`;'
+        code = "const text = `// @ts-ignore`;"
         issues = analyzer.analyze(code)
         assert len(issues) == 0
 
@@ -304,9 +313,11 @@ class TestCompilerIgnore:
         issues = analyzer.analyze(code)
         assert len(issues) == 0
 
+
 # ═══════════════════════════════════════════════════════════════════
 # Language Isolation & E2E
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestLanguageIsolation:
     """Verify JS/TS isolation."""
@@ -333,6 +344,7 @@ class TestLanguageIsolation:
         js_issues = [i for i in issues if i["rule_name"] == "JS_LOOSE_EQUALITY"]
         assert len(js_issues) == 1
 
+
 FULL_TS_EXAMPLE = """
 // @ts-ignore
 // Bug: unsafe any declaration
@@ -348,11 +360,12 @@ let safe: unknown;
 const msg = "no as any inside here";
 """
 
+
 class TestE2ETypescriptPipeline:
     def test_e2e_findings_reach_unified_list(self):
         sa = StaticAnalyzer()
         engine = HybridEngine()
-        
+
         static_issues = sa.analyze(FULL_TS_EXAMPLE, "TypeScript")
         normalised = engine.normalize(static_issues, "Static")
         fused = engine.fuse(normalised, [])

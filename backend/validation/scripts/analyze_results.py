@@ -36,8 +36,8 @@ Output:
 
 import csv
 import os
-import sys
 import statistics
+import sys
 
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if BACKEND_DIR not in sys.path:
@@ -50,7 +50,9 @@ def load_csv(path: str) -> list:
         return list(csv.DictReader(f))
 
 
-def save_ranked_csv(rows: list, sort_key: str, output_path: str, ascending: bool = True):
+def save_ranked_csv(
+    rows: list, sort_key: str, output_path: str, ascending: bool = True
+):
     """Save rows sorted by a numeric key."""
     sorted_rows = sorted(rows, key=lambda r: float(r[sort_key]), reverse=not ascending)
     ranked = []
@@ -65,8 +67,13 @@ def save_ranked_csv(rows: list, sort_key: str, output_path: str, ascending: bool
 
 def validate_boundedness(rows: list) -> list:
     """Check all scores are in [0, 100]."""
-    score_fields = ["security_score", "performance_score", "maintainability_score",
-                    "technical_debt_health", "overall_quality"]
+    score_fields = [
+        "security_score",
+        "performance_score",
+        "maintainability_score",
+        "technical_debt_health",
+        "overall_quality",
+    ]
     violations = []
     for row in rows:
         for field in score_fields:
@@ -225,7 +232,7 @@ def main():
 
     # Separate benchmark samples from model_properties
     benchmark_rows = [r for r in rows if r["file"].startswith("sample")]
-    model_rows = [r for r in rows if not r["file"].startswith("sample")]
+    [r for r in rows if not r["file"].startswith("sample")]
 
     output_lines = []
 
@@ -285,7 +292,12 @@ def main():
     else:
         log("  PASS: Proportional issues produce similar normalized impact")
 
-    total_violations = len(bound_violations) + len(sev_violations) + len(comp_violations) + len(conf_violations)
+    total_violations = (
+        len(bound_violations)
+        + len(sev_violations)
+        + len(comp_violations)
+        + len(conf_violations)
+    )
     log(f"\nTotal strict violations: {total_violations}")
 
     # ═══════════════════════════════════════════════════════════════
@@ -296,16 +308,23 @@ def main():
     log("=" * 70)
 
     summary_fields = [
-        "overall_quality", "security_score", "performance_score",
-        "maintainability_score", "technical_debt_health",
-        "issue_count", "average_complexity", "total_impact",
+        "overall_quality",
+        "security_score",
+        "performance_score",
+        "maintainability_score",
+        "technical_debt_health",
+        "issue_count",
+        "average_complexity",
+        "total_impact",
     ]
 
     for field in summary_fields:
         stats = compute_statistics(benchmark_rows, field)
         log(f"\n  {field}:")
-        log(f"    count={stats['count']}  mean={stats['mean']}  median={stats['median']}  "
-            f"min={stats['min']}  max={stats['max']}  stddev={stats['stddev']}")
+        log(
+            f"    count={stats['count']}  mean={stats['mean']}  median={stats['median']}  "
+            f"min={stats['min']}  max={stats['max']}  stddev={stats['stddev']}"
+        )
 
     # ═══════════════════════════════════════════════════════════════
     # 3. Group Analysis
@@ -315,11 +334,31 @@ def main():
     log("=" * 70)
 
     groups = {
-        "A (Clean)":    [r for r in benchmark_rows if r["file"] in [f"sample{i:02d}.py" for i in range(1, 5)]],
-        "B (Low)":      [r for r in benchmark_rows if r["file"] in [f"sample{i:02d}.py" for i in range(5, 9)]],
-        "C (Medium)":   [r for r in benchmark_rows if r["file"] in [f"sample{i:02d}.py" for i in range(9, 13)]],
-        "D (High)":     [r for r in benchmark_rows if r["file"] in [f"sample{i:02d}.py" for i in range(13, 17)]],
-        "E (Critical)": [r for r in benchmark_rows if r["file"] in [f"sample{i:02d}.py" for i in range(17, 21)]],
+        "A (Clean)": [
+            r
+            for r in benchmark_rows
+            if r["file"] in [f"sample{i:02d}.py" for i in range(1, 5)]
+        ],
+        "B (Low)": [
+            r
+            for r in benchmark_rows
+            if r["file"] in [f"sample{i:02d}.py" for i in range(5, 9)]
+        ],
+        "C (Medium)": [
+            r
+            for r in benchmark_rows
+            if r["file"] in [f"sample{i:02d}.py" for i in range(9, 13)]
+        ],
+        "D (High)": [
+            r
+            for r in benchmark_rows
+            if r["file"] in [f"sample{i:02d}.py" for i in range(13, 17)]
+        ],
+        "E (Critical)": [
+            r
+            for r in benchmark_rows
+            if r["file"] in [f"sample{i:02d}.py" for i in range(17, 21)]
+        ],
     }
 
     for group_name, group_rows in groups.items():
@@ -329,14 +368,18 @@ def main():
         stats = compute_statistics(group_rows, "overall_quality")
         log(f"\n  {group_name}:")
         log(f"    Files: {[r['file'] for r in group_rows]}")
-        log(f"    Overall Quality: mean={stats['mean']}  min={stats['min']}  max={stats['max']}")
+        log(
+            f"    Overall Quality: mean={stats['mean']}  min={stats['min']}  max={stats['max']}"
+        )
 
     # Check group ordering (A > B > C > D > E in mean overall quality)
     log("\n--- Group Ordering Check ---")
     group_means = {}
     for group_name, group_rows in groups.items():
         if group_rows:
-            group_means[group_name] = statistics.mean([float(r["overall_quality"]) for r in group_rows])
+            group_means[group_name] = statistics.mean(
+                [float(r["overall_quality"]) for r in group_rows]
+            )
 
     group_names_ordered = list(groups.keys())
     ordering_ok = True
@@ -345,7 +388,9 @@ def main():
         g2 = group_names_ordered[i + 1]
         if g1 in group_means and g2 in group_means:
             if group_means[g1] < group_means[g2]:
-                log(f"  WARNING: {g1} mean ({group_means[g1]:.1f}) < {g2} mean ({group_means[g2]:.1f})")
+                log(
+                    f"  WARNING: {g1} mean ({group_means[g1]:.1f}) < {g2} mean ({group_means[g2]:.1f})"
+                )
                 ordering_ok = False
     if ordering_ok:
         log("  PASS: Group means are ordered A > B > C > D > E")
@@ -358,18 +403,34 @@ def main():
     log("=" * 70)
 
     # Ranked CSVs for external comparison
-    save_ranked_csv(benchmark_rows, "overall_quality",
-                    os.path.join(results_dir, "ranked_by_overall.csv"), ascending=True)
-    save_ranked_csv(benchmark_rows, "security_score",
-                    os.path.join(results_dir, "ranked_by_security.csv"), ascending=True)
-    save_ranked_csv(benchmark_rows, "maintainability_score",
-                    os.path.join(results_dir, "ranked_by_maintainability.csv"), ascending=True)
+    save_ranked_csv(
+        benchmark_rows,
+        "overall_quality",
+        os.path.join(results_dir, "ranked_by_overall.csv"),
+        ascending=True,
+    )
+    save_ranked_csv(
+        benchmark_rows,
+        "security_score",
+        os.path.join(results_dir, "ranked_by_security.csv"),
+        ascending=True,
+    )
+    save_ranked_csv(
+        benchmark_rows,
+        "maintainability_score",
+        os.path.join(results_dir, "ranked_by_maintainability.csv"),
+        ascending=True,
+    )
 
     log("  Saved: ranked_by_overall.csv")
     log("  Saved: ranked_by_security.csv")
     log("  Saved: ranked_by_maintainability.csv")
-    log("\n  These CSVs can be joined with independently collected external measurements")
-    log("  (SonarQube, Radon MI, expert ratings) for Spearman rank correlation analysis.")
+    log(
+        "\n  These CSVs can be joined with independently collected external measurements"
+    )
+    log(
+        "  (SonarQube, Radon MI, expert ratings) for Spearman rank correlation analysis."
+    )
 
     # Save analysis summary
     summary_path = os.path.join(results_dir, "analysis_summary.txt")

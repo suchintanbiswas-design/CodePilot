@@ -17,6 +17,7 @@ export function ReviewDetailPage() {
   const [review, setReview] = useState<Review | null>(null);
   const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState<IssueSeverity | 'All'>('All');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const diffEditorRef = useRef<any>(null);
 
   useEffect(() => {

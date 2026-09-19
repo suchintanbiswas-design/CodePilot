@@ -13,7 +13,6 @@ import pytest
 
 from app.engine.hybrid_engine import HybridEngine, NormalizedIssue, _text_similarity
 
-
 # ──────────────────────────────────────────────────────────────
 # Fixtures
 # ──────────────────────────────────────────────────────────────
@@ -83,7 +82,9 @@ class TestTextSimilarity:
         assert _text_similarity("alpha beta", "gamma delta") == 0.0
 
     def test_partial_overlap(self):
-        sim = _text_similarity("catch all exception handling", "exception handling masks bugs")
+        sim = _text_similarity(
+            "catch all exception handling", "exception handling masks bugs"
+        )
         assert 0.0 < sim < 1.0
 
     def test_empty_strings(self):
@@ -104,28 +105,64 @@ class TestTextSimilarity:
 
 class TestNormalize:
     def test_tags_source_correctly(self, engine: HybridEngine):
-        issues = [{"severity": "High", "line_number": 1, "description": "test", "rule_type": "Bugs"}]
+        issues = [
+            {
+                "severity": "High",
+                "line_number": 1,
+                "description": "test",
+                "rule_type": "Bugs",
+            }
+        ]
         result = engine.normalize(issues, "Static")
         assert len(result) == 1
         assert result[0].source == "Static"
 
     def test_tags_ai_source(self, engine: HybridEngine):
-        issues = [{"severity": "Low", "line_number": 5, "description": "x", "rule_type": "Smells"}]
+        issues = [
+            {
+                "severity": "Low",
+                "line_number": 5,
+                "description": "x",
+                "rule_type": "Smells",
+            }
+        ]
         result = engine.normalize(issues, "AI")
         assert result[0].source == "AI"
 
     def test_coerces_severity_to_title_case(self, engine: HybridEngine):
         issues = [
-            {"severity": "critical", "line_number": 1, "description": "a", "rule_type": "X"},
-            {"severity": "HIGH", "line_number": 2, "description": "b", "rule_type": "Y"},
-            {"severity": "medium", "line_number": 3, "description": "c", "rule_type": "Z"},
+            {
+                "severity": "critical",
+                "line_number": 1,
+                "description": "a",
+                "rule_type": "X",
+            },
+            {
+                "severity": "HIGH",
+                "line_number": 2,
+                "description": "b",
+                "rule_type": "Y",
+            },
+            {
+                "severity": "medium",
+                "line_number": 3,
+                "description": "c",
+                "rule_type": "Z",
+            },
             {"severity": "LOW", "line_number": 4, "description": "d", "rule_type": "W"},
         ]
         result = engine.normalize(issues, "Static")
         assert [r.severity for r in result] == ["Critical", "High", "Medium", "Low"]
 
     def test_fills_missing_optional_fields(self, engine: HybridEngine):
-        issues = [{"severity": "Low", "line_number": 1, "description": "test", "rule_type": "General"}]
+        issues = [
+            {
+                "severity": "Low",
+                "line_number": 1,
+                "description": "test",
+                "rule_type": "General",
+            }
+        ]
         result = engine.normalize(issues, "Static")
         assert result[0].ai_explanation is None
         assert result[0].suggestion is None
@@ -148,7 +185,13 @@ class TestNormalize:
 
     def test_preserves_file_field(self, engine: HybridEngine):
         issues = [
-            {"severity": "Low", "line_number": 1, "description": "d", "rule_type": "X", "file": "src/main.py"}
+            {
+                "severity": "Low",
+                "line_number": 1,
+                "description": "d",
+                "rule_type": "X",
+                "file": "src/main.py",
+            }
         ]
         result = engine.normalize(issues, "Static")
         assert result[0].file == "src/main.py"
@@ -175,7 +218,12 @@ class TestNormalize:
 class TestIssueIdGeneration:
     def test_sequential_ids(self, engine: HybridEngine):
         issues = [
-            {"severity": "Low", "line_number": i, "description": f"issue {i}", "rule_type": "X"}
+            {
+                "severity": "Low",
+                "line_number": i,
+                "description": f"issue {i}",
+                "rule_type": "X",
+            }
             for i in range(1, 4)
         ]
         result = engine.normalize(issues, "Static")
@@ -185,23 +233,67 @@ class TestIssueIdGeneration:
 
     def test_ids_unique_across_normalizations(self, engine: HybridEngine):
         static = engine.normalize(
-            [{"severity": "Low", "line_number": 1, "description": "a", "rule_type": "X"}], "Static"
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 1,
+                    "description": "a",
+                    "rule_type": "X",
+                }
+            ],
+            "Static",
         )
         ai = engine.normalize(
-            [{"severity": "Low", "line_number": 2, "description": "b", "rule_type": "Y"}], "AI"
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 2,
+                    "description": "b",
+                    "rule_type": "Y",
+                }
+            ],
+            "AI",
         )
         assert static[0].issue_id != ai[0].issue_id
 
     def test_fresh_engine_resets_counter(self):
         e1 = HybridEngine()
-        r1 = e1.normalize([{"severity": "Low", "line_number": 1, "description": "x", "rule_type": "X"}], "Static")
+        r1 = e1.normalize(
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 1,
+                    "description": "x",
+                    "rule_type": "X",
+                }
+            ],
+            "Static",
+        )
         e2 = HybridEngine()
-        r2 = e2.normalize([{"severity": "Low", "line_number": 1, "description": "x", "rule_type": "X"}], "Static")
+        r2 = e2.normalize(
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 1,
+                    "description": "x",
+                    "rule_type": "X",
+                }
+            ],
+            "Static",
+        )
         assert r1[0].issue_id == r2[0].issue_id  # both ISS-000001
 
     def test_id_format(self, engine: HybridEngine):
         result = engine.normalize(
-            [{"severity": "Low", "line_number": 1, "description": "x", "rule_type": "X"}], "Static"
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 1,
+                    "description": "x",
+                    "rule_type": "X",
+                }
+            ],
+            "Static",
         )
         assert result[0].issue_id.startswith("ISS-")
         assert len(result[0].issue_id) == 10  # "ISS-" + 6 digits
@@ -224,53 +316,81 @@ class TestDuplicateDetection:
         return engine.normalize([defaults], "Static")[0]
 
     def test_exact_duplicate_scores_1(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=10, rule_type="Bugs", description="Catch-all exception")
-        b = self._make_issue(engine, line_number=10, rule_type="Bugs", description="Catch-all exception")
+        a = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="Catch-all exception"
+        )
+        b = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="Catch-all exception"
+        )
         score = engine._duplicate_score(a, b)
         assert score == 1.0
 
     def test_same_line_same_rule_different_desc(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=10, rule_type="Bugs", description="alpha beta gamma")
-        b = self._make_issue(engine, line_number=10, rule_type="Bugs", description="delta epsilon zeta")
+        a = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="alpha beta gamma"
+        )
+        b = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="delta epsilon zeta"
+        )
         score = engine._duplicate_score(a, b)
         # line (40%) + rule (30%) + desc (0%) = 70%
         assert score == pytest.approx(0.70, abs=0.01)
 
     def test_same_line_different_rule_different_desc(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=10, rule_type="Bugs", description="alpha")
-        b = self._make_issue(engine, line_number=10, rule_type="Security", description="beta")
+        a = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="alpha"
+        )
+        b = self._make_issue(
+            engine, line_number=10, rule_type="Security", description="beta"
+        )
         score = engine._duplicate_score(a, b)
         # line (40%) + rule (0%) + desc (0%) = 40%
         assert score == pytest.approx(0.40, abs=0.01)
 
     def test_different_line_same_rule_same_desc(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=10, rule_type="Bugs", description="same description")
-        b = self._make_issue(engine, line_number=20, rule_type="Bugs", description="same description")
+        a = self._make_issue(
+            engine, line_number=10, rule_type="Bugs", description="same description"
+        )
+        b = self._make_issue(
+            engine, line_number=20, rule_type="Bugs", description="same description"
+        )
         score = engine._duplicate_score(a, b)
         # line (0%) + rule (30%) + desc (30%) = 60%
         assert score == pytest.approx(0.60, abs=0.01)
 
     def test_completely_different_scores_0(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=1, rule_type="Bugs", description="alpha")
-        b = self._make_issue(engine, line_number=99, rule_type="Security", description="beta")
+        a = self._make_issue(
+            engine, line_number=1, rule_type="Bugs", description="alpha"
+        )
+        b = self._make_issue(
+            engine, line_number=99, rule_type="Security", description="beta"
+        )
         score = engine._duplicate_score(a, b)
         assert score == pytest.approx(0.0, abs=0.01)
 
     def test_zero_line_numbers_dont_match(self, engine: HybridEngine):
-        a = self._make_issue(engine, line_number=0, rule_type="Bugs", description="same")
-        b = self._make_issue(engine, line_number=0, rule_type="Bugs", description="same")
+        a = self._make_issue(
+            engine, line_number=0, rule_type="Bugs", description="same"
+        )
+        b = self._make_issue(
+            engine, line_number=0, rule_type="Bugs", description="same"
+        )
         score = engine._duplicate_score(a, b)
         # line (0% — both zero) + rule (30%) + desc (30%) = 60%
         assert score == pytest.approx(0.60, abs=0.01)
 
     def test_partial_description_overlap(self, engine: HybridEngine):
         a = self._make_issue(
-            engine, line_number=10, rule_type="Bugs",
-            description="Catch-all exception handling masks bugs"
+            engine,
+            line_number=10,
+            rule_type="Bugs",
+            description="Catch-all exception handling masks bugs",
         )
         b = self._make_issue(
-            engine, line_number=10, rule_type="Bugs",
-            description="Catch-all exception handling masks bugs and hides errors"
+            engine,
+            line_number=10,
+            rule_type="Bugs",
+            description="Catch-all exception handling masks bugs and hides errors",
         )
         score = engine._duplicate_score(a, b)
         # line (40%) + rule (30%) + desc (partial ~80%) → should be > 0.70
@@ -295,7 +415,9 @@ class TestFuse:
         assert len(result) == 2
         assert all(r["source"] == "AI" for r in result)
 
-    def test_duplicates_merged(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_duplicates_merged(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -310,7 +432,9 @@ class TestFuse:
         assert "match_score" in merged[0]
         assert merged[0]["match_score"] >= engine.DUPLICATE_THRESHOLD
 
-    def test_unmatched_static_kept(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_unmatched_static_kept(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -319,7 +443,9 @@ class TestFuse:
         # The TODO (line 25) and hardcoded secret (line 5) should remain Static
         assert len(static_only) == 2
 
-    def test_unmatched_ai_kept(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_unmatched_ai_kept(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -329,7 +455,9 @@ class TestFuse:
         assert len(ai_only) == 1
         assert ai_only[0]["line_number"] == 42
 
-    def test_sorted_by_severity_then_line(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_sorted_by_severity_then_line(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -342,7 +470,9 @@ class TestFuse:
     def test_empty_inputs(self, engine: HybridEngine):
         assert engine.fuse([], []) == []
 
-    def test_all_issues_have_issue_id(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_all_issues_have_issue_id(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -351,7 +481,9 @@ class TestFuse:
             assert "issue_id" in issue
             assert issue["issue_id"].startswith("ISS-")
 
-    def test_all_issues_have_source(self, engine: HybridEngine, sample_static_issues, sample_ai_issues):
+    def test_all_issues_have_source(
+        self, engine: HybridEngine, sample_static_issues, sample_ai_issues
+    ):
         static = engine.normalize(sample_static_issues, "Static")
         ai = engine.normalize(sample_ai_issues, "AI")
         result = engine.fuse(static, ai)
@@ -362,11 +494,25 @@ class TestFuse:
 
     def test_merged_uses_higher_severity(self, engine: HybridEngine):
         static = engine.normalize(
-            [{"severity": "Medium", "line_number": 10, "description": "same issue here", "rule_type": "Bugs"}],
+            [
+                {
+                    "severity": "Medium",
+                    "line_number": 10,
+                    "description": "same issue here",
+                    "rule_type": "Bugs",
+                }
+            ],
             "Static",
         )
         ai = engine.normalize(
-            [{"severity": "Critical", "line_number": 10, "description": "same issue here", "rule_type": "Bugs"}],
+            [
+                {
+                    "severity": "Critical",
+                    "line_number": 10,
+                    "description": "same issue here",
+                    "rule_type": "Bugs",
+                }
+            ],
             "AI",
         )
         result = engine.fuse(static, ai)
@@ -376,7 +522,15 @@ class TestFuse:
 
     def test_to_dict_excludes_none_values(self, engine: HybridEngine):
         issues = engine.normalize(
-            [{"severity": "Low", "line_number": 1, "description": "test", "rule_type": "X"}], "Static"
+            [
+                {
+                    "severity": "Low",
+                    "line_number": 1,
+                    "description": "test",
+                    "rule_type": "X",
+                }
+            ],
+            "Static",
         )
         result = engine.fuse(issues, [])
         # ai_explanation, suggestion, file, match_score should not appear in dicts
@@ -389,13 +543,30 @@ class TestFuse:
     def test_no_double_counting(self, engine: HybridEngine):
         """A static issue should only match one AI issue, not multiple."""
         static = engine.normalize(
-            [{"severity": "High", "line_number": 10, "description": "catch exception", "rule_type": "Bugs"}],
+            [
+                {
+                    "severity": "High",
+                    "line_number": 10,
+                    "description": "catch exception",
+                    "rule_type": "Bugs",
+                }
+            ],
             "Static",
         )
         ai = engine.normalize(
             [
-                {"severity": "High", "line_number": 10, "description": "catch exception handling", "rule_type": "Bugs"},
-                {"severity": "High", "line_number": 10, "description": "catch exception masks bugs", "rule_type": "Bugs"},
+                {
+                    "severity": "High",
+                    "line_number": 10,
+                    "description": "catch exception handling",
+                    "rule_type": "Bugs",
+                },
+                {
+                    "severity": "High",
+                    "line_number": 10,
+                    "description": "catch exception masks bugs",
+                    "rule_type": "Bugs",
+                },
             ],
             "AI",
         )
@@ -408,11 +579,26 @@ class TestFuse:
     def test_syntax_and_ai_bug_fusion(self, engine: HybridEngine):
         """A syntax error from static analysis and a bug from AI on the same line should merge into a Syntax issue."""
         static = engine.normalize(
-            [{"severity": "Critical", "line_number": 6, "description": "Java syntax error: malformed string literal", "rule_type": "Syntax"}],
+            [
+                {
+                    "severity": "Critical",
+                    "line_number": 6,
+                    "description": "Java syntax error: malformed string literal",
+                    "rule_type": "Syntax",
+                }
+            ],
             "Static",
         )
         ai = engine.normalize(
-            [{"severity": "Critical", "line_number": 6, "description": "String literal is missing closing quote", "rule_type": "Bugs", "ai_explanation": "You forgot a quote."}],
+            [
+                {
+                    "severity": "Critical",
+                    "line_number": 6,
+                    "description": "String literal is missing closing quote",
+                    "rule_type": "Bugs",
+                    "ai_explanation": "You forgot a quote.",
+                }
+            ],
             "AI",
         )
         result = engine.fuse(static, ai)

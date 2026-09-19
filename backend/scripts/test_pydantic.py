@@ -1,11 +1,15 @@
 """Test how Pydantic parses language_id in ReviewCreateRequest"""
-from pydantic import BaseModel, Field, model_validator
+
 from typing import Optional, Union
 from uuid import UUID
+
+from pydantic import BaseModel, Field, model_validator
+
 
 class ReviewBase(BaseModel):
     title: str = Field(..., max_length=255)
     language_id: Optional[Union[UUID, str]] = None
+
 
 class ReviewCreateRequest(ReviewBase):
     source_code: Optional[str] = None
@@ -19,6 +23,7 @@ class ReviewCreateRequest(ReviewBase):
             raise ValueError("Either source_code or repo_url must be provided.")
         return self
 
+
 # Test 1: Frontend sends language name "Python"
 req1 = ReviewCreateRequest(title="Test", language_id="Python", source_code="x=1")
 print("Test 1: language_id='Python'")
@@ -29,7 +34,9 @@ print("  isinstance(UUID):", isinstance(req1.language_id, UUID))
 print()
 
 # Test 2: Frontend sends UUID string
-req2 = ReviewCreateRequest(title="Test", language_id="724264b2-0c3b-4cdf-99c5-bcc6722952ff", source_code="x=1")
+req2 = ReviewCreateRequest(
+    title="Test", language_id="724264b2-0c3b-4cdf-99c5-bcc6722952ff", source_code="x=1"
+)
 print("Test 2: language_id='724264b2-0c3b-...'")
 print("  type:", type(req2.language_id))
 print("  value:", repr(req2.language_id))
@@ -39,7 +46,10 @@ print()
 
 # Test 3: What the JSON payload from the frontend looks like
 import json
-data = json.loads('{"title": "Test Review", "language_id": "Python", "source_code": "def hello(): pass"}')
+
+data = json.loads(
+    '{"title": "Test Review", "language_id": "Python", "source_code": "def hello(): pass"}'
+)
 req3 = ReviewCreateRequest(**data)
 print("Test 3: From JSON (simulating frontend)")
 print("  type:", type(req3.language_id))

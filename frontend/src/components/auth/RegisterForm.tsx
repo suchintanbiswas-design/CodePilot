@@ -58,8 +58,8 @@ export function RegisterForm() {
       });
       success('Registration Successful', 'Welcome to CodePilot!');
       navigate(ROUTES.DASHBOARD);
-    } catch (err: any) {
-      error('Registration Failed', err.response?.data?.message || 'Please try again later.');
+    } catch (err: unknown) {
+      error('Registration Failed', (err as {response?: {data?: {message?: string}}}).response?.data?.message || 'Please try again later.');
     } finally {
       setIsSubmitting(false);
     }

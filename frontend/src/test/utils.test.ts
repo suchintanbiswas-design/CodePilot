@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { parseUtcDate, formatRelativeTime, formatDate, formatDateTime } from '../lib/utils';
+import { parseUtcDate, formatRelativeTime, formatDateTime } from '../lib/utils';
 
 describe('utils - Date parsing', () => {
   beforeEach(() => {

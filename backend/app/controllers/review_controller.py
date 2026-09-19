@@ -16,7 +16,7 @@ from fastapi import (
     UploadFile,
 )
 from pydantic import ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.database import async_session_maker, get_db
@@ -50,7 +50,7 @@ class ReviewController:
             except (json.JSONDecodeError, ValidationError) as e:
                 raise HTTPException(
                     status_code=422, detail=f"Invalid request data: {e}"
-                )
+                ) from e
 
             review = await self.review_service.submit_review(
                 db, current_user.id, req, file
@@ -74,14 +74,16 @@ class ReviewController:
             try:
                 req_dict = json.loads(req_data)
             except json.JSONDecodeError as e:
-                raise HTTPException(status_code=422, detail=f"Invalid JSON: {e}")
+                raise HTTPException(status_code=422, detail=f"Invalid JSON: {e}") from e
 
             source_code = req_dict.get("source_code", "")
             selected_language = req_dict.get("language", "Unknown")
             filename = req_dict.get("file_name", None)
 
             detector = LanguageDetector()
-            result = detector.validate_language(selected_language, source_code, filename)
+            result = detector.validate_language(
+                selected_language, source_code, filename
+            )
 
             return {"success": True, "data": result}
 
@@ -199,60 +201,81 @@ class ReviewController:
                 media_type = "application/pdf" if type == "pdf" else "text/html"
                 return Response(content=content, media_type=media_type)
             except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
+                raise HTTPException(status_code=500, detail=str(e)) from e
 
         @self.router.get("/dashboard/metrics")
         async def get_dashboard_metrics(
             db: AsyncSession = Depends(get_db),
             current_user: User = Depends(get_current_user),
         ):
-            from app.models.review import Review
             from app.models.language import Language
-            from datetime import datetime, timedelta
+            from app.models.review import Review
 
             stmt_all = select(Review).where(Review.user_id == current_user.id)
             res_all = await db.execute(stmt_all)
             reviews = res_all.scalars().all()
 
             # Avg Score
-            valid_scores = [r.quality_score for r in reviews if r.quality_score is not None]
-            avg_score = round(sum(valid_scores) / len(valid_scores)) if valid_scores else 0
+            valid_scores = [
+                r.quality_score for r in reviews if r.quality_score is not None
+            ]
+            avg_score = (
+                round(sum(valid_scores) / len(valid_scores)) if valid_scores else 0
+            )
 
             # Tech Debt Trend
             # Group by actual review dates (days)
             debt_by_date = {}
             for r in reviews:
-                if r.status == "completed" and r.created_at and r.review_metadata and "tech_debt" in r.review_metadata:
+                if (
+                    r.status == "completed"
+                    and r.created_at
+                    and r.review_metadata
+                    and "tech_debt" in r.review_metadata
+                ):
                     d = r.created_at.date()
                     if d not in debt_by_date:
                         debt_by_date[d] = []
                     debt_by_date[d].append(int(r.review_metadata["tech_debt"]))
-            
+
             tech_debt_trend = None
             if len(debt_by_date) >= 2:
                 sorted_dates = sorted(debt_by_date.keys())
                 earliest_date = sorted_dates[0]
                 latest_date = sorted_dates[-1]
-                
-                earliest_avg = sum(debt_by_date[earliest_date]) / len(debt_by_date[earliest_date])
-                latest_avg = sum(debt_by_date[latest_date]) / len(debt_by_date[latest_date])
-                
+
+                earliest_avg = sum(debt_by_date[earliest_date]) / len(
+                    debt_by_date[earliest_date]
+                )
+                latest_avg = sum(debt_by_date[latest_date]) / len(
+                    debt_by_date[latest_date]
+                )
+
                 if earliest_avg > 0:
-                    tech_debt_trend = round(((earliest_avg - latest_avg) / earliest_avg) * 100, 1)
-            
+                    tech_debt_trend = round(
+                        ((earliest_avg - latest_avg) / earliest_avg) * 100, 1
+                    )
+
             # Review Streak (consecutive days)
             review_dates = set()
             for r in reviews:
                 if r.status == "completed" and r.created_at:
                     review_dates.add(r.created_at.date())
-            
+
             streak = 0
             now = datetime.utcnow()
             curr_date = now.date()
-            if curr_date not in review_dates and (curr_date - timedelta(days=1)) not in review_dates:
+            if (
+                curr_date not in review_dates
+                and (curr_date - timedelta(days=1)) not in review_dates
+            ):
                 streak = 0
             else:
-                check_date = curr_date if curr_date in review_dates else curr_date - timedelta(days=1)
+                check_date = (
+                    curr_date
+                    if curr_date in review_dates
+                    else curr_date - timedelta(days=1)
+                )
                 while check_date in review_dates:
                     streak += 1
                     check_date -= timedelta(days=1)
@@ -261,12 +284,16 @@ class ReviewController:
             ai_usage_tokens = 0
             has_tokens = False
             for r in reviews:
-                if r.status == "completed" and r.review_metadata and "ai_usage" in r.review_metadata:
+                if (
+                    r.status == "completed"
+                    and r.review_metadata
+                    and "ai_usage" in r.review_metadata
+                ):
                     ai_usage = r.review_metadata["ai_usage"]
                     if "total_tokens" in ai_usage:
                         ai_usage_tokens += ai_usage["total_tokens"]
                         has_tokens = True
-            
+
             if not has_tokens:
                 ai_usage_tokens = None
 
@@ -275,23 +302,35 @@ class ReviewController:
             for r in reviews:
                 if r.language_id:
                     lang_counts[r.language_id] = lang_counts.get(r.language_id, 0) + 1
-            
+
             lang_distribution = []
             if lang_counts:
-                lang_stmt = select(Language).where(Language.id.in_(list(lang_counts.keys())))
+                lang_stmt = select(Language).where(
+                    Language.id.in_(list(lang_counts.keys()))
+                )
                 lang_res = await db.execute(lang_stmt)
-                langs = {l.id: l.name for l in lang_res.scalars().all()}
-                
+                langs = {lang.id: lang.name for lang in lang_res.scalars().all()}
+
                 total_lang_reviews = sum(lang_counts.values())
-                colors = ["bg-blue-500", "bg-yellow-500", "bg-cyan-500", "bg-green-500", "bg-purple-500"]
-                
-                sorted_langs = sorted(lang_counts.items(), key=lambda x: x[1], reverse=True)
+                colors = [
+                    "bg-blue-500",
+                    "bg-yellow-500",
+                    "bg-cyan-500",
+                    "bg-green-500",
+                    "bg-purple-500",
+                ]
+
+                sorted_langs = sorted(
+                    lang_counts.items(), key=lambda x: x[1], reverse=True
+                )
                 for idx, (lid, count) in enumerate(sorted_langs):
-                    lang_distribution.append({
-                        "name": langs.get(lid, "Unknown"),
-                        "percent": round((count / total_lang_reviews) * 100),
-                        "color": colors[idx % len(colors)]
-                    })
+                    lang_distribution.append(
+                        {
+                            "name": langs.get(lid, "Unknown"),
+                            "percent": round((count / total_lang_reviews) * 100),
+                            "color": colors[idx % len(colors)],
+                        }
+                    )
 
             return {
                 "success": True,
@@ -300,8 +339,8 @@ class ReviewController:
                     "techDebtTrend": tech_debt_trend,
                     "reviewStreak": streak,
                     "aiUsageTokens": ai_usage_tokens,
-                    "languages": lang_distribution
-                }
+                    "languages": lang_distribution,
+                },
             }
 
         @self.router.get("/dashboard/analytics")
@@ -318,8 +357,12 @@ class ReviewController:
             reviews = res_all.scalars().all()
 
             # Avg Score
-            valid_scores = [r.quality_score for r in reviews if r.quality_score is not None]
-            avg_score = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else 0
+            valid_scores = [
+                r.quality_score for r in reviews if r.quality_score is not None
+            ]
+            avg_score = (
+                round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else 0
+            )
 
             # Reviews Run
             reviews_run = len(reviews)
@@ -342,7 +385,7 @@ class ReviewController:
                 {"name": "Critical", "count": severity_counts.get("Critical", 0)},
                 {"name": "High", "count": severity_counts.get("High", 0)},
                 {"name": "Medium", "count": severity_counts.get("Medium", 0)},
-                {"name": "Low", "count": severity_counts.get("Low", 0)}
+                {"name": "Low", "count": severity_counts.get("Low", 0)},
             ]
 
             # Language Popularity
@@ -357,7 +400,7 @@ class ReviewController:
                     Language.id.in_(list(lang_counts.keys()))
                 )
                 lang_res = await db.execute(lang_stmt)
-                langs = {l.id: l.name for l in lang_res.scalars().all()}
+                langs = {lang.id: lang.name for lang in lang_res.scalars().all()}
 
                 for lid, count in lang_counts.items():
                     lang_data.append(
@@ -371,7 +414,7 @@ class ReviewController:
                     continue
                 month_name = r.created_at.strftime("%b")
                 month_sort = r.created_at.strftime("%Y-%m")
-                
+
                 if month_sort not in trends:
                     trends[month_sort] = {
                         "name": month_name,
@@ -384,9 +427,11 @@ class ReviewController:
                 trends[month_sort]["count"] += 1
                 trends[month_sort]["quality"] += r.quality_score or 0
                 trends[month_sort]["issues"] += len(r.issues) if r.issues else 0
-                
+
                 if r.review_metadata:
-                    trends[month_sort]["techDebt"] += int(r.review_metadata.get("tech_debt", 0))
+                    trends[month_sort]["techDebt"] += int(
+                        r.review_metadata.get("tech_debt", 0)
+                    )
 
             trend_data = []
             for m in sorted(trends.keys()):
@@ -413,8 +458,8 @@ class ReviewController:
                     },
                     "trendData": trend_data,
                     "langData": lang_data,
-                    "issueTypeData": issue_type_data
-                }
+                    "issueTypeData": issue_type_data,
+                },
             }
 
 

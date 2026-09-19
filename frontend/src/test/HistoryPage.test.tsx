@@ -46,7 +46,7 @@ const mockReviews = [
 describe('HistoryPage Filters', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    (reviewService.list as any).mockResolvedValue({ items: mockReviews, total: 3 });
+    (reviewService.list as import("vitest").Mock).mockResolvedValue({ items: mockReviews, total: 3 });
   });
 
   const renderComponent = () => {

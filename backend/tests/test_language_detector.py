@@ -18,7 +18,7 @@ class TestLanguageDetector:
     # -- Correct detection for each language --
 
     def test_detect_python(self):
-        code = '''
+        code = """
 import os
 from pathlib import Path
 
@@ -35,14 +35,14 @@ class Calculator:
         return a + b
 
 print(factorial(5))
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "Python"
         assert result.confidence >= 75
         assert len(result.evidence) > 0
 
     def test_detect_java(self):
-        code = '''
+        code = """
 package com.example;
 
 import java.util.ArrayList;
@@ -58,13 +58,13 @@ public class Main {
         return x * 2;
     }
 }
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "Java"
         assert result.confidence >= 75
 
     def test_detect_javascript(self):
-        code = '''
+        code = """
 const express = require('express');
 const app = express();
 
@@ -82,13 +82,13 @@ let count = 0;
 if (count === 0) {
     console.warn('Count is zero');
 }
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "JavaScript"
         assert result.confidence >= 75
 
     def test_detect_typescript(self):
-        code = '''
+        code = """
 interface User {
     id: number;
     name: string;
@@ -111,13 +111,13 @@ async function fetchData(): Promise<void> {
     const result = await fetch('/api');
     console.log(result);
 }
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "TypeScript"
         assert result.confidence >= 75
 
     def test_detect_c(self):
-        code = '''
+        code = """
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -134,13 +134,13 @@ int main(int argc, char *argv[]) {
     free(p);
     return 0;
 }
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "C"
         assert result.confidence >= 75
 
     def test_detect_cpp(self):
-        code = '''
+        code = """
 #include <iostream>
 #include <vector>
 
@@ -159,7 +159,7 @@ int main() {
     delete calc;
     return 0;
 }
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "C++"
         assert result.confidence >= 75
@@ -167,7 +167,7 @@ int main() {
     # -- Mismatch detection --
 
     def test_python_submitted_as_java_mismatch(self):
-        code = '''
+        code = """
 def factorial(n):
     if n <= 1:
         return 1
@@ -175,7 +175,7 @@ def factorial(n):
 
 for i in range(10):
     print(factorial(i))
-'''
+"""
         validation = self.detector.validate_language("Java", code)
         assert validation["selected_language"] == "Java"
         assert validation["detected_language"] == "Python"
@@ -183,7 +183,7 @@ for i in range(10):
         assert validation["confidence"] >= 50
 
     def test_java_submitted_as_python_mismatch(self):
-        code = '''
+        code = """
 import java.util.List;
 
 public class App {
@@ -191,27 +191,27 @@ public class App {
         System.out.println("Hello");
     }
 }
-'''
+"""
         validation = self.detector.validate_language("Python", code)
         assert validation["selected_language"] == "Python"
         assert validation["detected_language"] == "Java"
         assert validation["is_match"] is False
 
     def test_correct_language_match(self):
-        code = '''
+        code = """
 def hello():
     print("Hello, World!")
-'''
+"""
         validation = self.detector.validate_language("Python", code)
         assert validation["is_match"] is True
 
     # -- Filename extension tests --
 
     def test_filename_supports_correct_detection(self):
-        code = '''
+        code = """
 def hello():
     print("Hello")
-'''
+"""
         result = self.detector.detect(code, filename="main.py")
         assert result.detected_language == "Python"
         # Confidence should be boosted by matching extension
@@ -220,7 +220,7 @@ def hello():
 
     def test_filename_conflicting_with_source(self):
         # Python code in a .java file — code evidence should win
-        code = '''
+        code = """
 import os
 from pathlib import Path
 
@@ -234,15 +234,15 @@ class Calculator:
         self.result = None
 
 print(factorial(5))
-'''
+"""
         result = self.detector.detect(code, filename="Test.java")
         assert result.detected_language == "Python"
 
     def test_filename_without_extension(self):
-        code = '''
+        code = """
 def hello():
     print("Hello")
-'''
+"""
         result = self.detector.detect(code, filename="Makefile")
         assert result.detected_language == "Python"
 
@@ -259,11 +259,11 @@ def hello():
         assert result.confidence == 0
 
     def test_comments_only(self):
-        code = '''
+        code = """
 # This is just a comment
 # Another comment line
 # No actual code here
-'''
+"""
         result = self.detector.detect(code)
         assert result.detected_language == "Unknown"
         assert result.confidence <= 20
@@ -286,7 +286,7 @@ def hello():
 
     def test_confidence_never_exceeds_100(self):
         # Throw a ton of Python fingerprints
-        code = '''
+        code = """
 import os
 import sys
 from pathlib import Path
@@ -322,7 +322,7 @@ class MyClass:
 @decorator
 def decorated():
     lambda x: x + 1
-'''
+"""
         result = self.detector.detect(code)
         assert result.confidence <= 100
 

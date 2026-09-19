@@ -19,6 +19,7 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = self.formatException(record.exc_info)
         return json.dumps(log_data)
 
+
 def setup_logging():
     env = os.getenv("APP_ENV", "development")
 
@@ -56,7 +57,7 @@ def setup_logging():
                     "level": "INFO",
                     "propagate": False,
                 },
-            }
+            },
         }
     else:
         log_config = {
@@ -84,7 +85,7 @@ def setup_logging():
                     "level": "INFO",
                     "propagate": False,
                 },
-            }
+            },
         }
 
     logging.config.dictConfig(log_config)

@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.engine.ai_reviewer import AIReviewer
@@ -64,6 +64,7 @@ class ReviewService:
             lang_id = req.language_id
         elif isinstance(req.language_id, str):
             from app.models.language import Language
+
             stmt = select(Language).where(Language.name.ilike(req.language_id))
             res = await db.execute(stmt)
             lang_obj = res.scalars().first()
@@ -79,11 +80,15 @@ class ReviewService:
             file_name=file_name,
             file_size=file_size,
             status="processing",
-            review_metadata={"requested_language": req.language_id} if isinstance(req.language_id, str) else {}
+            review_metadata=(
+                {"requested_language": req.language_id}
+                if isinstance(req.language_id, str)
+                else {}
+            ),
         )
         db.add(review)
         await db.commit()
-        
+
         stmt = (
             select(Review)
             .options(selectinload(Review.language))
@@ -105,7 +110,6 @@ class ReviewService:
                 logger.error(f"Review {review_id} not found for processing.")
                 return
 
-            notification_created = False
             try:
                 if review.repo_url:
                     await self._process_repo(db, review)
@@ -121,28 +125,35 @@ class ReviewService:
                 review.review_metadata = err_metadata
             finally:
                 db.add(review)
-                
+
                 # Create a single notification for the review process
-                from app.models.notification import Notification
                 from sqlalchemy import select
-                
+
+                from app.models.notification import Notification
+
                 # Deduplication check
-                stmt = select(Notification).where(Notification.reference_id == f"review_{review.id}")
+                stmt = select(Notification).where(
+                    Notification.reference_id == f"review_{review.id}"
+                )
                 res = await db.execute(stmt)
                 existing_notif = res.scalars().first()
-                
+
                 if not existing_notif:
-                    title = "Review Completed" if review.status == "completed" else "Review Failed"
+                    title = (
+                        "Review Completed"
+                        if review.status == "completed"
+                        else "Review Failed"
+                    )
                     msg = f"Your review for '{review.title}' has {review.status}."
                     notif = Notification(
                         user_id=review.user_id,
                         title=title,
                         message=msg,
                         type=f"review_{review.status}",
-                        reference_id=f"review_{review.id}"
+                        reference_id=f"review_{review.id}",
                     )
                     db.add(notif)
-                
+
                 await db.commit()
 
     async def _process_single_file(self, db: AsyncSession, review: Review) -> None:
@@ -171,13 +182,19 @@ class ReviewService:
         selected = language
 
         # Use detection as authoritative if confident enough
-        if detected != "Unknown" and confidence >= 25 and detected.lower() != selected.lower():
+        if (
+            detected != "Unknown"
+            and confidence >= 25
+            and detected.lower() != selected.lower()
+        ):
             final_language = detected
             lang_detection["final_language"] = final_language
-            lang_detection["language_switched"] = (selected != "Unknown")
+            lang_detection["language_switched"] = selected != "Unknown"
             # Update the review's language_id to the detected language
             from sqlalchemy import select as sa_select
+
             from app.models.language import Language as Lang
+
             det_stmt = sa_select(Lang).where(Lang.name == final_language)
             det_res = await db.execute(det_stmt)
             det_lang_obj = det_res.scalars().first()
@@ -185,8 +202,10 @@ class ReviewService:
                 review.language_id = det_lang_obj.id
         else:
             if selected == "Unknown" and (confidence < 25 or detected == "Unknown"):
-                raise Exception("Could not confidently determine programming language. Please specify a language manually.")
-                
+                raise Exception(
+                    "Could not confidently determine programming language. Please specify a language manually."
+                )
+
             # Fallback to selected (which might be identical to detected, or detected is low confidence)
             final_language = selected if selected != "Unknown" else detected
             lang_detection["final_language"] = final_language
@@ -203,19 +222,20 @@ class ReviewService:
 
         ai_status = "available"
         ai_unavailable_reason = None
-        
+
         try:
-            ai_summary, improved_code, ai_enhanced_issues, ai_usage = await self.ai_reviewer.review(
-                code, static_issues
+            ai_summary, improved_code, ai_enhanced_issues, ai_usage = (
+                await self.ai_reviewer.review(code, static_issues)
             )
         except Exception as e:
             from app.engine.providers.base import AIAvailabilityError
+
             ai_status = "unavailable"
             if isinstance(e, AIAvailabilityError):
                 ai_unavailable_reason = e.reason
             else:
                 ai_unavailable_reason = "provider_error"
-            
+
             ai_summary = "AI analysis temporarily unavailable."
             improved_code = None
             ai_enhanced_issues = []
@@ -238,12 +258,12 @@ class ReviewService:
         metrics = self._calculate_metrics(unified_issues, complexity)
         if ai_usage:
             metrics["ai_usage"] = ai_usage
-        
+
         # --- Scoring Engine ---
         scoring_results = self.scoring_engine.calculate_scores(
             unified_issues,
             cyclomatic_complexity=complexity,
-            lines_of_code=lines_of_code
+            lines_of_code=lines_of_code,
         )
         metrics["scoring_engine"] = scoring_results
 
@@ -258,7 +278,9 @@ class ReviewService:
         existing_metadata.update(metrics)
         review.review_metadata = existing_metadata
         # Override the top-level quality_score with the independent Scoring Engine result
-        review.quality_score = scoring_results.get("overall_quality", metrics.get("quality_score", 0))
+        review.quality_score = scoring_results.get(
+            "overall_quality", metrics.get("quality_score", 0)
+        )
 
     async def _process_repo(self, db: AsyncSession, review: Review) -> None:
         url = review.repo_url
@@ -270,7 +292,9 @@ class ReviewService:
                     capture_output=True,
                 )
             except subprocess.CalledProcessError as e:
-                raise Exception(f"Failed to clone repository: {e.stderr.decode()}")
+                raise Exception(
+                    f"Failed to clone repository: {e.stderr.decode()}"
+                ) from e
 
             all_issues = []
             file_count = 0
@@ -348,12 +372,12 @@ class ReviewService:
             unified_issues = self.confidence_engine.calculate_all(unified_issues)
 
             metrics = self._calculate_metrics(unified_issues, total_complexity)
-            
+
             # --- Scoring Engine ---
             scoring_results = self.scoring_engine.calculate_scores(
                 unified_issues,
                 cyclomatic_complexity=total_complexity,
-                lines_of_code=total_lines_of_code
+                lines_of_code=total_lines_of_code,
             )
             metrics["scoring_engine"] = scoring_results
 
@@ -361,7 +385,9 @@ class ReviewService:
                 "file_count": file_count,
                 "largest_files": largest_files,
                 "language_distribution": language_distribution,
-                "repo_health_score": scoring_results.get("overall_quality", metrics.get("quality_score", 0)),
+                "repo_health_score": scoring_results.get(
+                    "overall_quality", metrics.get("quality_score", 0)
+                ),
             }
             metrics["lines_of_code"] = total_lines_of_code
 
@@ -369,7 +395,9 @@ class ReviewService:
             existing_metadata = dict(review.review_metadata or {})
             existing_metadata.update(metrics)
             review.review_metadata = existing_metadata
-            review.quality_score = scoring_results.get("overall_quality", metrics.get("quality_score", 0))
+            review.quality_score = scoring_results.get(
+                "overall_quality", metrics.get("quality_score", 0)
+            )
 
     def _calculate_metrics(
         self, issues: List[Dict[str, Any]], complexity: int = 10
@@ -395,11 +423,11 @@ class ReviewService:
             maintainability_grade = "F"
 
         if critical > 2 or high > 5:
-            tech_debt = "High"
+            pass
         elif critical > 0 or high > 2 or medium > 5:
-            tech_debt = "Medium"
+            pass
         else:
-            tech_debt = "Low"
+            pass
 
         return {
             "quality_score": quality_score,

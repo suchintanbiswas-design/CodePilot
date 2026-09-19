@@ -1,15 +1,14 @@
-from datetime import datetime, timedelta
 from collections import Counter
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.database import get_db
 from app.middleware.auth import get_current_user
-from app.models.review import Review
 from app.models.language import Language
-from app.models.user import User
+from app.models.review import Review
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -47,9 +46,9 @@ async def get_profile(
     if lang_counts:
         lang_stmt = select(Language).where(Language.id.in_(list(lang_counts.keys())))
         lang_result = await db.execute(lang_stmt)
-        lang_map = {l.id: l.name for l in lang_result.scalars().all()}
+        lang_map = {lang.id: lang.name for lang in lang_result.scalars().all()}
         sorted_langs = lang_counts.most_common(6)
-        for lid, count in sorted_langs:
+        for lid, _count in sorted_langs:
             top_languages.append(lang_map.get(lid, "Unknown"))
 
     # Activity heatmap - last 365 days of review counts per day
@@ -113,6 +112,7 @@ async def get_preferences(
     db: AsyncSession = Depends(get_db),
 ):
     from app.models.settings import UserSettings
+
     stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalars().first()
@@ -125,7 +125,9 @@ async def update_preferences(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    preferences = await user_service.update_preferences(db, current_user.id, preferences_data)
+    preferences = await user_service.update_preferences(
+        db, current_user.id, preferences_data
+    )
     return {"success": True, "data": preferences}
 
 
@@ -137,19 +139,23 @@ async def update_password(
 ):
     current_password = password_data.get("current_password")
     new_password = password_data.get("new_password")
-    
+
     if not current_password or not new_password:
         raise HTTPException(status_code=400, detail="Missing current or new password")
-        
+
     if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-        
+        raise HTTPException(
+            status_code=400, detail="Password must be at least 8 characters"
+        )
+
     success = await user_service.change_password(
         db, current_user.id, current_password, new_password
     )
     if not success:
-        raise HTTPException(status_code=400, detail="Invalid current password or update failed")
-        
+        raise HTTPException(
+            status_code=400, detail="Invalid current password or update failed"
+        )
+
     return {"success": True, "message": "Password updated successfully"}
 
 

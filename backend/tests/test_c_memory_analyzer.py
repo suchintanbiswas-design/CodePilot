@@ -1,12 +1,11 @@
-import pytest
 from app.engine.c_memory_analyzer import CMemoryAnalyzer
-from app.engine.static_analyzer import StaticAnalyzer
 from app.engine.hybrid_engine import HybridEngine
-
+from app.engine.static_analyzer import StaticAnalyzer
 
 # ---------------------------------------------------------------------------
 # Unit-level CMemoryAnalyzer tests
 # ---------------------------------------------------------------------------
+
 
 class TestDoubleFree:
     """C_DOUBLE_FREE rule."""
@@ -238,6 +237,7 @@ class TestMallocFreeMismatch:
         issues = analyzer.analyze(code)
         mm = [i for i in issues if i["rule_name"] == "C_MALLOC_FREE_MISMATCH"]
         assert len(mm) == 1
+
 
 class TestNullDerefAfterMalloc:
     """C_NULL_DEREF_AFTER_MALLOC rule."""
@@ -493,7 +493,7 @@ class TestMemoryLeak:
             int *a = malloc(10);
             free(a);
             free(a); // Double free
-            
+
             int *b = malloc(10);
             // leaks b
         }
@@ -520,6 +520,7 @@ class TestMemoryLeak:
         assert len(leaks) == 1
         # The line reported should ideally be the return line or function exit.
         assert leaks[0]["line_number"] == 5
+
 
 class TestMultiplePointers:
     """Tests with multiple independent pointers to verify no cross-contamination."""
@@ -608,10 +609,10 @@ class TestMultiplePointers:
                 free(buggy);
                 return;
             }
-            
+
             free(buggy);
             *buggy = 5;  // Real UAF
-            
+
             *safe = 10;  // Safe use
             free(safe);
         }
@@ -746,8 +747,11 @@ class TestE2EFullCPipeline:
 
     def test_static_free_mismatch_in_fused(self):
         fused = self._get_fused_issues()
-        mm = [i for i in fused if "static" in i["description"].lower()
-              and "free()" in i["description"]]
+        mm = [
+            i
+            for i in fused
+            if "static" in i["description"].lower() and "free()" in i["description"]
+        ]
         assert len(mm) >= 1
 
     def test_null_deref_in_fused(self):

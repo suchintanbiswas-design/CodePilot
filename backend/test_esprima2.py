@@ -1,4 +1,5 @@
 import esprima
+
 code = "function test() { var a = { get x() {}, dataProperty: 1, get x() {} }; }"
 try:
     tree = esprima.parseScript(code, tolerant=True)

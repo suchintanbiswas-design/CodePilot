@@ -1,13 +1,13 @@
 """Tests for PythonSemanticAnalyzer — Phase 1 rules."""
-import pytest
+
+from app.engine.hybrid_engine import HybridEngine
 from app.engine.python_analyzer import PythonSemanticAnalyzer
 from app.engine.static_analyzer import StaticAnalyzer
-from app.engine.hybrid_engine import HybridEngine
-
 
 # ═══════════════════════════════════════════════════════════════════
 # PY_MUTABLE_DEFAULT_ARG
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestMutableDefaultArg:
     """PY_MUTABLE_DEFAULT_ARG rule."""
@@ -175,6 +175,7 @@ def process(a=[], b={}, c=set()):
 # PY_DANGEROUS_EVAL
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestDangerousEval:
     """PY_DANGEROUS_EVAL rule."""
 
@@ -267,6 +268,7 @@ result = eval(f"{x} + 1")
 # ═══════════════════════════════════════════════════════════════════
 # PY_BROAD_EXCEPTION
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestBroadException:
     """PY_BROAD_EXCEPTION rule."""
@@ -366,6 +368,7 @@ except ValueError:
 # PY_IS_LITERAL_COMPARISON
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestIsLiteralComparison:
     """PY_IS_LITERAL_COMPARISON rule."""
 
@@ -464,6 +467,7 @@ if values == []:
 # ═══════════════════════════════════════════════════════════════════
 # PY_OS_SYSTEM_INJECTION
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestOsSystemInjection:
     """PY_OS_SYSTEM_INJECTION rule."""
@@ -699,9 +703,9 @@ class TestE2EPythonPipeline:
         fused = self._get_fused_issues()
         # The constant eval("1 + 2") should NOT appear
         const_eval = [
-            i for i in fused
-            if "eval" in i["description"].lower()
-            and "1 + 2" in i["description"]
+            i
+            for i in fused
+            if "eval" in i["description"].lower() and "1 + 2" in i["description"]
         ]
         assert len(const_eval) == 0
 
@@ -723,6 +727,7 @@ class TestE2EPythonPipeline:
 # ═══════════════════════════════════════════════════════════════════
 # PY_NESTED_LOOP_COMPLEXITY
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestNestedLoopComplexity:
     """PY_NESTED_LOOP_COMPLEXITY rule."""
@@ -830,6 +835,7 @@ for x in range(10):
 # PY_N_PLUS_1_QUERY
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestNPlus1Query:
     """PY_N_PLUS_1_QUERY rule."""
 
@@ -929,7 +935,7 @@ while True:
         issues = analyzer.analyze(code)
         nq = [i for i in issues if i["rule_name"] == "PY_N_PLUS_1_QUERY"]
         assert len(nq) == 0
-        
+
     def test_fetchmany_inside_loop_not_flagged(self):
         """cursor.fetchmany() inside a loop is valid iteration, NOT N+1."""
         analyzer = PythonSemanticAnalyzer()

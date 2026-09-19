@@ -71,24 +71,36 @@ class GeminiProvider(BaseAIProvider):
             ai_summary = data.get("ai_summary", "No summary provided.")
             improved_code = data.get("improved_code", original_code)
             ai_enhanced_issues = data.get("ai_enhanced_issues", static_issues)
-            
+
             usage_info = None
-            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            if hasattr(response, "usage_metadata") and response.usage_metadata:
                 um = response.usage_metadata
                 usage_info = {
                     "model": settings.GEMINI_MODEL,
-                    "input_tokens": getattr(um, 'prompt_token_count', getattr(um, 'input_token_count', 0)),
-                    "output_tokens": getattr(um, 'candidates_token_count', getattr(um, 'output_token_count', 0)),
-                    "total_tokens": getattr(um, 'total_token_count', 0)
+                    "input_tokens": getattr(
+                        um, "prompt_token_count", getattr(um, "input_token_count", 0)
+                    ),
+                    "output_tokens": getattr(
+                        um,
+                        "candidates_token_count",
+                        getattr(um, "output_token_count", 0),
+                    ),
+                    "total_tokens": getattr(um, "total_token_count", 0),
                 }
 
             return ai_summary, improved_code, ai_enhanced_issues, usage_info
         except Exception as e:
             logger.error(f"Gemini API error: {e}")
             from app.engine.providers.base import AIAvailabilityError
+
             reason = "provider_error"
             # Check for rate limit indicators in the exception
             err_str = str(e).lower()
-            if "429" in err_str or "resource_exhausted" in err_str or "too many requests" in err_str or "quota" in err_str:
+            if (
+                "429" in err_str
+                or "resource_exhausted" in err_str
+                or "too many requests" in err_str
+                or "quota" in err_str
+            ):
                 reason = "rate_limit"
-            raise AIAvailabilityError(reason, f"Gemini API error: {e}")
+            raise AIAvailabilityError(reason, f"Gemini API error: {e}") from e

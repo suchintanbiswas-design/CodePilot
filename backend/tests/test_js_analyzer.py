@@ -1,13 +1,13 @@
 """Tests for JavaScriptSemanticAnalyzer — Phase 1 rules."""
-import pytest
+
+from app.engine.hybrid_engine import HybridEngine
 from app.engine.js_analyzer import JavaScriptSemanticAnalyzer
 from app.engine.static_analyzer import StaticAnalyzer
-from app.engine.hybrid_engine import HybridEngine
-
 
 # ═══════════════════════════════════════════════════════════════════
 # JS_LOOSE_EQUALITY
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestLooseEquality:
     """JS_LOOSE_EQUALITY rule."""
@@ -107,6 +107,7 @@ function check(x) {
 # JS_DANGEROUS_EVAL
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestDangerousEval:
     """JS_DANGEROUS_EVAL rule."""
 
@@ -201,6 +202,7 @@ var r = new RegExp("abc");
 # JS_INNERHTML_XSS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestInnerHTMLXSS:
     """JS_INNERHTML_XSS rule."""
 
@@ -216,7 +218,7 @@ class TestInnerHTMLXSS:
 
     def test_dynamic_outerhtml_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'container.outerHTML = `<div>${data}</div>`;'
+        code = "container.outerHTML = `<div>${data}</div>`;"
         issues = analyzer.analyze(code)
         xss = [i for i in issues if i["rule_name"] == "JS_INNERHTML_XSS"]
         assert len(xss) == 1
@@ -224,7 +226,7 @@ class TestInnerHTMLXSS:
 
     def test_direct_variable_assignment_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'element.innerHTML = userInput;'
+        code = "element.innerHTML = userInput;"
         issues = analyzer.analyze(code)
         xss = [i for i in issues if i["rule_name"] == "JS_INNERHTML_XSS"]
         assert len(xss) == 1
@@ -245,21 +247,21 @@ class TestInnerHTMLXSS:
 
     def test_constant_template_literal_not_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'element.innerHTML = `<div>Static template</div>`;'
+        code = "element.innerHTML = `<div>Static template</div>`;"
         issues = analyzer.analyze(code)
         xss = [i for i in issues if i["rule_name"] == "JS_INNERHTML_XSS"]
         assert len(xss) == 0
 
     def test_textcontent_not_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'element.textContent = userInput;'
+        code = "element.textContent = userInput;"
         issues = analyzer.analyze(code)
         xss = [i for i in issues if i["rule_name"] == "JS_INNERHTML_XSS"]
         assert len(xss) == 0
 
     def test_unrelated_property_assignment_not_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'element.className = userInput;'
+        code = "element.className = userInput;"
         issues = analyzer.analyze(code)
         xss = [i for i in issues if i["rule_name"] == "JS_INNERHTML_XSS"]
         assert len(xss) == 0
@@ -268,6 +270,7 @@ class TestInnerHTMLXSS:
 # ═══════════════════════════════════════════════════════════════════
 # JS_DOCUMENT_WRITE
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestDocumentWrite:
     """JS_DOCUMENT_WRITE rule."""
@@ -284,7 +287,7 @@ class TestDocumentWrite:
 
     def test_document_writeln_detected(self):
         analyzer = JavaScriptSemanticAnalyzer()
-        code = 'document.writeln(userData);'
+        code = "document.writeln(userData);"
         issues = analyzer.analyze(code)
         dw = [i for i in issues if i["rule_name"] == "JS_DOCUMENT_WRITE"]
         assert len(dw) == 1
@@ -315,6 +318,7 @@ class TestDocumentWrite:
 # ═══════════════════════════════════════════════════════════════════
 # JS_SWITCH_FALLTHROUGH
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestSwitchFallthrough:
     """JS_SWITCH_FALLTHROUGH rule."""
@@ -479,6 +483,7 @@ if (a) {
 # TypeScript isolation
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestTypeScriptIsolation:
     """Verify that TypeScript does NOT invoke the JavaScript semantic analyzer."""
 
@@ -495,8 +500,16 @@ function check(x) {
 """
         ts_issues = sa.analyze(ts_code, "TypeScript")
         js_semantic = [
-            i for i in ts_issues
-            if i.get("rule_name") in ("JS_LOOSE_EQUALITY", "JS_DANGEROUS_EVAL", "JS_INNERHTML_XSS", "JS_DOCUMENT_WRITE", "JS_SWITCH_FALLTHROUGH")
+            i
+            for i in ts_issues
+            if i.get("rule_name")
+            in (
+                "JS_LOOSE_EQUALITY",
+                "JS_DANGEROUS_EVAL",
+                "JS_INNERHTML_XSS",
+                "JS_DOCUMENT_WRITE",
+                "JS_SWITCH_FALLTHROUGH",
+            )
         ]
         assert len(js_semantic) == 0, (
             f"TypeScript must not produce JS semantic findings; got: "
@@ -516,8 +529,16 @@ function check(x) {
 """
         js_issues = sa.analyze(js_code, "JavaScript")
         js_semantic = [
-            i for i in js_issues
-            if i.get("rule_name") in ("JS_LOOSE_EQUALITY", "JS_DANGEROUS_EVAL", "JS_INNERHTML_XSS", "JS_DOCUMENT_WRITE", "JS_SWITCH_FALLTHROUGH")
+            i
+            for i in js_issues
+            if i.get("rule_name")
+            in (
+                "JS_LOOSE_EQUALITY",
+                "JS_DANGEROUS_EVAL",
+                "JS_INNERHTML_XSS",
+                "JS_DOCUMENT_WRITE",
+                "JS_SWITCH_FALLTHROUGH",
+            )
         ]
         assert len(js_semantic) >= 4
 
@@ -594,7 +615,12 @@ class TestE2EJavaScriptPipeline:
 
     def test_innerhtml_xss_in_fused(self):
         fused = self._get_fused_issues()
-        xss = [i for i in fused if "Cross-Site Scripting" in i["description"] and "innerHTML" in i["description"]]
+        xss = [
+            i
+            for i in fused
+            if "Cross-Site Scripting" in i["description"]
+            and "innerHTML" in i["description"]
+        ]
         assert len(xss) >= 1
 
     def test_document_write_in_fused(self):
@@ -610,19 +636,16 @@ class TestE2EJavaScriptPipeline:
     def test_null_check_not_in_fused(self):
         fused = self._get_fused_issues()
         # The null check should NOT trigger loose equality
-        null_le = [
-            i for i in fused
-            if "Loose equality" in i["description"]
-        ]
+        null_le = [i for i in fused if "Loose equality" in i["description"]]
         # Only 1 loose equality finding (x == 0), not nullCheck
         assert len(null_le) == 1
 
     def test_constant_eval_not_in_fused(self):
         fused = self._get_fused_issues()
         const_eval = [
-            i for i in fused
-            if "eval" in i["description"].lower()
-            and "1 + 1" in i["description"]
+            i
+            for i in fused
+            if "eval" in i["description"].lower() and "1 + 1" in i["description"]
         ]
         assert len(const_eval) == 0
 
@@ -630,7 +653,8 @@ class TestE2EJavaScriptPipeline:
         """The existing VAR_USAGE regex rule must still fire."""
         fused = self._get_fused_issues()
         var = [
-            i for i in fused
+            i
+            for i in fused
             if "var" in i["description"].lower()
             and "let/const" in i["description"].lower()
         ]

@@ -19,9 +19,8 @@ Design notes
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
-
 
 # ---------------------------------------------------------------------------
 # Normalised issue model
@@ -167,15 +166,18 @@ class HybridEngine:
                 # Merge: prefer AI's richer explanation but keep static rule_type
                 # if the AI one is too generic or if the static one is explicitly 'Syntax'.
                 static_match = static_issues[best_idx]
-                
+
                 ai_rule_lower = ai_issue.rule_type.lower()
                 static_rule_lower = static_match.rule_type.lower()
-                
-                if ai_rule_lower in ("general", "", "bug", "bugs") or static_rule_lower == "syntax":
+
+                if (
+                    ai_rule_lower in ("general", "", "bug", "bugs")
+                    or static_rule_lower == "syntax"
+                ):
                     final_rule_type = static_match.rule_type
                 else:
                     final_rule_type = ai_issue.rule_type
-                
+
                 merged_issue = NormalizedIssue(
                     issue_id=static_match.issue_id,  # keep the earlier ID
                     severity=self._pick_higher_severity(
@@ -224,12 +226,14 @@ class HybridEngine:
         * Description textual overlap → 30 %  (Jaccard similarity)
         """
         # Line match (exact)
-        line_score = 1.0 if (a.line_number == b.line_number and a.line_number != 0) else 0.0
+        line_score = (
+            1.0 if (a.line_number == b.line_number and a.line_number != 0) else 0.0
+        )
 
         # Rule / category match (case-insensitive)
         rule_a = a.rule_type.lower()
         rule_b = b.rule_type.lower()
-        
+
         # Treat Syntax and Bugs as highly overlapping since Gemini often classifies syntax errors as bugs
         syntax_bug_aliases = {"syntax", "bug", "bugs", "error", "errors"}
         if rule_a == rule_b:
@@ -242,18 +246,21 @@ class HybridEngine:
         # Description similarity (Jaccard)
         desc_score = _text_similarity(a.description, b.description)
 
-        # Boost score if they are on the same line and one is a Syntax error, 
+        # Boost score if they are on the same line and one is a Syntax error,
         # because any critical AI bug on the exact same line as a syntax error is almost certainly the syntax error itself.
         base_score = (
             self.WEIGHT_LINE * line_score
             + self.WEIGHT_RULE * rule_score
             + self.WEIGHT_DESC * desc_score
         )
-        
+
         if line_score == 1.0 and ("syntax" in (rule_a, rule_b)):
-            if a.severity.lower() in ("critical", "high") and b.severity.lower() in ("critical", "high"):
+            if a.severity.lower() in ("critical", "high") and b.severity.lower() in (
+                "critical",
+                "high",
+            ):
                 return max(base_score, self.DUPLICATE_THRESHOLD + 0.05)
-                
+
         return base_score
 
     @staticmethod

@@ -84,20 +84,35 @@ class ScoringEngine:
     MAINT_COMPLEXITY_DIVISOR = 2.0
 
     # ─── Category Classification Keywords ──────────────────────────────
-    SECURITY_KEYWORDS = frozenset({
-        "security", "secret", "password", "credential", "injection",
-        "authentication", "authorization", "eval", "unsafe",
-    })
+    SECURITY_KEYWORDS = frozenset(
+        {
+            "security",
+            "secret",
+            "password",
+            "credential",
+            "injection",
+            "authentication",
+            "authorization",
+            "eval",
+            "unsafe",
+        }
+    )
     # NOTE: "complexity" was intentionally removed from this set.
     # The COMPLEX_CONDITION rule (rule_type: "Complexity") detects complex boolean
     # expressions, which is a maintainability concern, NOT algorithmic performance.
     # Cyclomatic complexity ≠ algorithmic complexity.
     # Genuine performance findings should use explicit keywords like "performance",
     # "inefficient", "algorithm", or "nested_loop".
-    PERFORMANCE_KEYWORDS = frozenset({
-        "performance", "inefficient", "loop",
-        "algorithm", "resource", "nested_loop",
-    })
+    PERFORMANCE_KEYWORDS = frozenset(
+        {
+            "performance",
+            "inefficient",
+            "loop",
+            "algorithm",
+            "resource",
+            "nested_loop",
+        }
+    )
 
     def __init__(self) -> None:
         pass
@@ -238,7 +253,9 @@ class ScoringEngine:
             "scoring_metadata": {
                 "total_impact": round(total_impact, 4),
                 "normalized_impact": round(normalized_impact, 4),
-                "confidence_adjusted_issue_count": round(confidence_adjusted_issue_count, 4),
+                "confidence_adjusted_issue_count": round(
+                    confidence_adjusted_issue_count, 4
+                ),
                 "normalized_issue_density": round(normalized_issue_density, 4),
                 "average_complexity": round(average_complexity, 4),
                 "loc_k": round(loc_k, 4),

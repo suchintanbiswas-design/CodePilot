@@ -43,6 +43,7 @@ class LanguageSchema(BaseModel):
     name: str
     model_config = ConfigDict(from_attributes=True)
 
+
 class ReviewResponse(ReviewBase):
     id: UUID
     user_id: UUID
@@ -51,7 +52,9 @@ class ReviewResponse(ReviewBase):
     issues: List[Dict[str, Any]] = Field(default_factory=list)
     quality_score: Optional[int] = None
     language: Optional[LanguageSchema] = None
-    review_metadata: Dict[str, Any] = Field(default_factory=dict, serialization_alias="metadata")
+    review_metadata: Dict[str, Any] = Field(
+        default_factory=dict, serialization_alias="metadata"
+    )
     status: str
     file_name: Optional[str] = None
     file_size: Optional[int] = None

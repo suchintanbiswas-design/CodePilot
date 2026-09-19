@@ -1,8 +1,6 @@
-﻿import pytest
+﻿from app.engine.hybrid_engine import HybridEngine
 from app.engine.java_analyzer import JavaSemanticAnalyzer
 from app.engine.static_analyzer import StaticAnalyzer
-from app.engine.hybrid_engine import HybridEngine
-
 
 # ---------------------------------------------------------------------------
 # The full BankManager example
@@ -114,6 +112,7 @@ class BankManager {
 # Unit-level JavaSemanticAnalyzer tests
 # ---------------------------------------------------------------------------
 
+
 class TestEqualsContract:
     """Rule 1: equals() overload + missing hashCode()."""
 
@@ -128,7 +127,9 @@ class TestEqualsContract:
         }
         """
         issues = analyzer.analyze(code)
-        eq_issues = [i for i in issues if "equals(Account) overloads" in i["description"]]
+        eq_issues = [
+            i for i in issues if "equals(Account) overloads" in i["description"]
+        ]
         assert len(eq_issues) == 1
         assert "hashCode() is missing" in eq_issues[0]["description"]
         assert eq_issues[0]["severity"] == "High"
@@ -152,7 +153,12 @@ class TestEqualsContract:
         }
         """
         issues = analyzer.analyze(code)
-        eq_issues = [i for i in issues if "equals" in i.get("description", "").lower() and "overload" in i.get("description", "").lower()]
+        eq_issues = [
+            i
+            for i in issues
+            if "equals" in i.get("description", "").lower()
+            and "overload" in i.get("description", "").lower()
+        ]
         assert len(eq_issues) == 0
 
     def test_equals_object_with_hashcode_not_flagged(self):
@@ -213,7 +219,9 @@ class TestStringReferenceComparison:
         }
         """
         issues = analyzer.analyze(code)
-        str_issues = [i for i in issues if "String comparison" in i.get("description", "")]
+        str_issues = [
+            i for i in issues if "String comparison" in i.get("description", "")
+        ]
         assert len(str_issues) == 0
 
     def test_primitive_comparison_not_flagged(self):
@@ -228,7 +236,9 @@ class TestStringReferenceComparison:
         }
         """
         issues = analyzer.analyze(code)
-        str_issues = [i for i in issues if "String comparison" in i.get("description", "")]
+        str_issues = [
+            i for i in issues if "String comparison" in i.get("description", "")
+        ]
         assert len(str_issues) == 0
 
 
@@ -259,7 +269,12 @@ class TestFloatingPointCurrency:
         }
         """
         issues = analyzer.analyze(code)
-        fp_issues = [i for i in issues if "floating-point" in i["description"].lower() and "balanceSum" in i["description"]]
+        fp_issues = [
+            i
+            for i in issues
+            if "floating-point" in i["description"].lower()
+            and "balanceSum" in i["description"]
+        ]
         assert len(fp_issues) >= 1
 
     def test_scientific_double_not_flagged(self):
@@ -274,7 +289,12 @@ class TestFloatingPointCurrency:
         }
         """
         issues = analyzer.analyze(code)
-        fp_issues = [i for i in issues if "floating-point" in i.get("description", "").lower() and "financial" in i.get("description", "").lower()]
+        fp_issues = [
+            i
+            for i in issues
+            if "floating-point" in i.get("description", "").lower()
+            and "financial" in i.get("description", "").lower()
+        ]
         assert len(fp_issues) == 0
 
     def test_bigdecimal_not_flagged(self):
@@ -290,13 +310,16 @@ class TestFloatingPointCurrency:
         }
         """
         issues = analyzer.analyze(code)
-        fp_issues = [i for i in issues if "floating-point" in i.get("description", "").lower()]
+        fp_issues = [
+            i for i in issues if "floating-point" in i.get("description", "").lower()
+        ]
         assert len(fp_issues) == 0
 
 
 # ---------------------------------------------------------------------------
 # End-to-end integration tests using the full BankManager example
 # ---------------------------------------------------------------------------
+
 
 class TestE2EBankManagerPipeline:
     """Verify that findings survive the full StaticAnalyzer -> HybridEngine pipeline."""
@@ -310,7 +333,9 @@ class TestE2EBankManagerPipeline:
 
     def test_equals_overload_in_fused(self):
         fused = self._get_fused_issues()
-        eq_issues = [i for i in fused if "equals(Account) overloads" in i["description"]]
+        eq_issues = [
+            i for i in fused if "equals(Account) overloads" in i["description"]
+        ]
         assert len(eq_issues) == 1, (
             f"Expected equals overload finding; got: "
             f"{[i['description'] for i in fused if 'equals' in i.get('description','').lower()]}"
@@ -336,12 +361,22 @@ class TestE2EBankManagerPipeline:
 
     def test_double_balance_in_fused(self):
         fused = self._get_fused_issues()
-        fp_issues = [i for i in fused if "balance" in i.get("description", "") and "floating-point" in i.get("description", "").lower()]
+        fp_issues = [
+            i
+            for i in fused
+            if "balance" in i.get("description", "")
+            and "floating-point" in i.get("description", "").lower()
+        ]
         assert len(fp_issues) >= 1
 
     def test_double_balanceSum_in_fused(self):
         fused = self._get_fused_issues()
-        fp_issues = [i for i in fused if "balanceSum" in i.get("description", "") and "floating-point" in i.get("description", "").lower()]
+        fp_issues = [
+            i
+            for i in fused
+            if "balanceSum" in i.get("description", "")
+            and "floating-point" in i.get("description", "").lower()
+        ]
         assert len(fp_issues) >= 1
 
     def test_total_correctness_issues(self):

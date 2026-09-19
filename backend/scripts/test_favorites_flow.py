@@ -1,19 +1,26 @@
 """Diagnose the complete favorites data flow."""
-import requests
+
 import json
+
+import requests
 
 BASE = "http://localhost:8000/api/v1"
 
+
 def login():
-    r = requests.post(f"{BASE}/auth/login", json={
-        "email": "admin@codepilot.dev",
-        "password": "Admin@123456",
-    })
+    r = requests.post(
+        f"{BASE}/auth/login",
+        json={
+            "email": "admin@codepilot.dev",
+            "password": "Admin@123456",
+        },
+    )
     if r.status_code != 200:
         print(f"Login failed: {r.status_code} {r.text}")
         return None
     token = r.json().get("data", {}).get("access_token")
     return {"Authorization": f"Bearer {token}"}
+
 
 def main():
     headers = login()
@@ -22,12 +29,17 @@ def main():
 
     # 1. Create a review to favorite
     print("=== 1. Create test review ===")
-    r = requests.post(f"{BASE}/reviews",
-        data={"req_data": json.dumps({
-            "title": "Fav Test Review",
-            "language_id": "Python",
-            "source_code": "x = 42",
-        })},
+    r = requests.post(
+        f"{BASE}/reviews",
+        data={
+            "req_data": json.dumps(
+                {
+                    "title": "Fav Test Review",
+                    "language_id": "Python",
+                    "source_code": "x = 42",
+                }
+            )
+        },
         headers=headers,
     )
     review_id = r.json()["id"]
@@ -38,7 +50,7 @@ def main():
     r = requests.post(f"{BASE}/favorites/reviews/{review_id}", headers=headers)
     print(f"  Status: {r.status_code}")
     print(f"  Body: {r.json()}")
-    fav_id = r.json().get("data", {}).get("id")
+    r.json().get("data", {}).get("id")
 
     # 3. Get collections (same call as FavoritesPage mount)
     print("\n=== 3. Get collections (GET /favorites/collections) ===")
@@ -55,8 +67,12 @@ def main():
     else:
         # 4. Check each collection for the review
         for col in collections:
-            print(f"\n=== 4. Get reviews in collection '{col['name']}' ({col['id']}) ===")
-            r = requests.get(f"{BASE}/favorites/collections/{col['id']}/reviews", headers=headers)
+            print(
+                f"\n=== 4. Get reviews in collection '{col['name']}' ({col['id']}) ==="
+            )
+            r = requests.get(
+                f"{BASE}/favorites/collections/{col['id']}/reviews", headers=headers
+            )
             print(f"  Status: {r.status_code}")
             print(f"  Body: {r.json()}")
             reviews = r.json().get("data", [])
@@ -71,6 +87,7 @@ def main():
 
     # Cleanup
     requests.delete(f"{BASE}/reviews/{review_id}", headers=headers)
+
 
 if __name__ == "__main__":
     main()

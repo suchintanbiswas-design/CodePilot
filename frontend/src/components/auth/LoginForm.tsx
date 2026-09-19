@@ -27,8 +27,8 @@ export function LoginForm() {
       await login({ email, password });
       success('Login Successful', 'Welcome back to CodePilot!');
       navigate(ROUTES.DASHBOARD);
-    } catch (err: any) {
-      error('Login Failed', err.response?.data?.message || 'Invalid email or password.');
+    } catch (err: unknown) {
+      error('Login Failed', (err as {response?: {data?: {message?: string}}}).response?.data?.message || 'Invalid email or password.');
     } finally {
       setIsSubmitting(false);
     }

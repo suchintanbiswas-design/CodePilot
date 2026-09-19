@@ -16,7 +16,7 @@ vi.mock('@/services/reviewService', () => ({
 // Mock Editor component so it doesn't try to load monaco
 vi.mock('@monaco-editor/react', () => {
   return {
-    default: ({ onChange }: any) => (
+    default: ({ onChange }: { onChange: (value: string | undefined) => void }) => (
       <textarea
         data-testid="monaco-editor"
         onChange={(e) => onChange(e.target.value)}
@@ -47,8 +47,8 @@ describe('NewReviewPage Regression Tests', () => {
   });
 
   it('Existing Paste Code submission still works', async () => {
-    (reviewService.detectLanguage as any).mockResolvedValue({ detected_language: 'Python', confidence: 99 });
-    (reviewService.create as any).mockResolvedValue({ id: '123' });
+    (reviewService.detectLanguage as import("vitest").Mock).mockResolvedValue({ detected_language: 'Python', confidence: 99 });
+    (reviewService.create as import("vitest").Mock).mockResolvedValue({ id: '123' });
 
     renderComponent();
     
@@ -69,8 +69,8 @@ describe('NewReviewPage Regression Tests', () => {
   });
 
   it('Uploading a valid Python file creates a review successfully', async () => {
-    (reviewService.detectLanguage as any).mockResolvedValue({ detected_language: 'Python', confidence: 99 });
-    (reviewService.upload as any).mockResolvedValue({ id: '124' });
+    (reviewService.detectLanguage as import("vitest").Mock).mockResolvedValue({ detected_language: 'Python', confidence: 99 });
+    (reviewService.upload as import("vitest").Mock).mockResolvedValue({ id: '124' });
 
     renderComponent();
     
@@ -96,7 +96,7 @@ describe('NewReviewPage Regression Tests', () => {
 
     await waitFor(() => {
       expect(reviewService.upload).toHaveBeenCalled();
-      const formData = (reviewService.upload as any).mock.calls[0][0];
+      const formData = (reviewService.upload as import("vitest").Mock).mock.calls[0][0];
       const reqData = JSON.parse(formData.get('req_data'));
       
       // Uploaded code reaches /api/v1/reviews as the same source_code content as Paste Code
@@ -107,8 +107,8 @@ describe('NewReviewPage Regression Tests', () => {
   });
 
   it('The same behavior works for at least one other supported language (C++)', async () => {
-    (reviewService.detectLanguage as any).mockResolvedValue({ detected_language: 'C++', confidence: 99 });
-    (reviewService.upload as any).mockResolvedValue({ id: '125' });
+    (reviewService.detectLanguage as import("vitest").Mock).mockResolvedValue({ detected_language: 'C++', confidence: 99 });
+    (reviewService.upload as import("vitest").Mock).mockResolvedValue({ id: '125' });
 
     renderComponent();
     
@@ -134,7 +134,7 @@ describe('NewReviewPage Regression Tests', () => {
 
     await waitFor(() => {
       expect(reviewService.upload).toHaveBeenCalled();
-      const formData = (reviewService.upload as any).mock.calls[0][0];
+      const formData = (reviewService.upload as import("vitest").Mock).mock.calls[0][0];
       const reqData = JSON.parse(formData.get('req_data'));
       
       expect(reqData.source_code).toBe('#include <iostream>\nint main() { return 0; }');

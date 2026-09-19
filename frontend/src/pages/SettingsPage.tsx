@@ -75,7 +75,8 @@ export function SettingsPage() {
       });
       setPasswordSuccess('Password updated successfully');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
       setPasswordError(err.response?.data?.detail || 'Failed to update password');
     }
   };

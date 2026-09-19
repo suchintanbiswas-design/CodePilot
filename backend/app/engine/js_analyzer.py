@@ -5,9 +5,10 @@ Uses the existing esprima parser to produce an ESTree-compliant AST,
 then walks it to detect correctness and security defects that regex
 rules cannot catch.
 """
+
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class JavaScriptSemanticAnalyzer:
@@ -83,10 +84,7 @@ class JavaScriptSemanticAnalyzer:
     @staticmethod
     def _is_null_literal(node: Dict[str, Any]) -> bool:
         """Check if a node is the literal `null`."""
-        return (
-            node.get("type") == "Literal"
-            and node.get("raw") == "null"
-        )
+        return node.get("type") == "Literal" and node.get("raw") == "null"
 
     @staticmethod
     def _is_constant_string(node: Dict[str, Any]) -> bool:
@@ -106,7 +104,12 @@ class JavaScriptSemanticAnalyzer:
         if not stmt or not isinstance(stmt, dict):
             return False
         t = stmt.get("type")
-        if t in ("BreakStatement", "ReturnStatement", "ThrowStatement", "ContinueStatement"):
+        if t in (
+            "BreakStatement",
+            "ReturnStatement",
+            "ThrowStatement",
+            "ContinueStatement",
+        ):
             return True
         if t == "BlockStatement":
             body = stmt.get("body", [])
@@ -151,17 +154,19 @@ class JavaScriptSemanticAnalyzer:
             return
 
         strict_op = "===" if operator == "==" else "!=="
-        issues.append(self._make_issue(
-            line_number=self._get_line(node),
-            severity="Medium",
-            description=(
-                f"Loose equality operator '{operator}' performs type coercion "
-                f"which can cause unexpected results. "
-                f"Use strict equality '{strict_op}' instead."
-            ),
-            rule_name="JS_LOOSE_EQUALITY",
-            rule_type="Bugs",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=self._get_line(node),
+                severity="Medium",
+                description=(
+                    f"Loose equality operator '{operator}' performs type coercion "
+                    f"which can cause unexpected results. "
+                    f"Use strict equality '{strict_op}' instead."
+                ),
+                rule_name="JS_LOOSE_EQUALITY",
+                rule_type="Bugs",
+            )
+        )
 
     # ── Rule: JS_DANGEROUS_EVAL ──────────────────────────────────────
 
@@ -183,17 +188,19 @@ class JavaScriptSemanticAnalyzer:
         if args and self._is_constant_string(args[0]):
             return
 
-        issues.append(self._make_issue(
-            line_number=self._get_line(node),
-            severity="Critical",
-            description=(
-                "Dangerous eval() call: dynamically evaluating code can execute "
-                "arbitrary JavaScript and exposes the application to code injection "
-                "attacks. Use JSON.parse() for data, or explicit logic instead."
-            ),
-            rule_name="JS_DANGEROUS_EVAL",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=self._get_line(node),
+                severity="Critical",
+                description=(
+                    "Dangerous eval() call: dynamically evaluating code can execute "
+                    "arbitrary JavaScript and exposes the application to code injection "
+                    "attacks. Use JSON.parse() for data, or explicit logic instead."
+                ),
+                rule_name="JS_DANGEROUS_EVAL",
+                rule_type="Security",
+            )
+        )
 
     def _check_dangerous_new_function(
         self,
@@ -218,17 +225,19 @@ class JavaScriptSemanticAnalyzer:
         if self._is_constant_string(body_arg):
             return
 
-        issues.append(self._make_issue(
-            line_number=self._get_line(node),
-            severity="Critical",
-            description=(
-                "Dangerous new Function() call: dynamically constructing a function "
-                "from a string can execute arbitrary JavaScript code. "
-                "Use explicit function definitions or safe alternatives."
-            ),
-            rule_name="JS_DANGEROUS_EVAL",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=self._get_line(node),
+                severity="Critical",
+                description=(
+                    "Dangerous new Function() call: dynamically constructing a function "
+                    "from a string can execute arbitrary JavaScript code. "
+                    "Use explicit function definitions or safe alternatives."
+                ),
+                rule_name="JS_DANGEROUS_EVAL",
+                rule_type="Security",
+            )
+        )
 
     # ── Rule: JS_INNERHTML_XSS ───────────────────────────────────────
 
@@ -255,18 +264,20 @@ class JavaScriptSemanticAnalyzer:
         if self._is_constant_string(right):
             return
 
-        issues.append(self._make_issue(
-            line_number=self._get_line(node),
-            severity="High",
-            description=(
-                f"Unsafe assignment to '{prop_name}': setting {prop_name} with "
-                f"dynamic content can lead to Cross-Site Scripting (XSS) "
-                f"vulnerabilities. Use 'textContent' for plain text, or sanitize "
-                f"HTML content before insertion."
-            ),
-            rule_name="JS_INNERHTML_XSS",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=self._get_line(node),
+                severity="High",
+                description=(
+                    f"Unsafe assignment to '{prop_name}': setting {prop_name} with "
+                    f"dynamic content can lead to Cross-Site Scripting (XSS) "
+                    f"vulnerabilities. Use 'textContent' for plain text, or sanitize "
+                    f"HTML content before insertion."
+                ),
+                rule_name="JS_INNERHTML_XSS",
+                rule_type="Security",
+            )
+        )
 
     # ── Rule: JS_DOCUMENT_WRITE ──────────────────────────────────────
 
@@ -293,18 +304,20 @@ class JavaScriptSemanticAnalyzer:
         if method_name not in ("write", "writeln"):
             return
 
-        issues.append(self._make_issue(
-            line_number=self._get_line(node),
-            severity="High",
-            description=(
-                f"Insecure document.{method_name}() call: document.write() "
-                f"can introduce XSS vulnerabilities and interferes with "
-                f"document parsing. Use DOM APIs such as 'createElement' "
-                f"and 'appendChild', or set 'textContent'/'innerHTML' safely."
-            ),
-            rule_name="JS_DOCUMENT_WRITE",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=self._get_line(node),
+                severity="High",
+                description=(
+                    f"Insecure document.{method_name}() call: document.write() "
+                    f"can introduce XSS vulnerabilities and interferes with "
+                    f"document parsing. Use DOM APIs such as 'createElement' "
+                    f"and 'appendChild', or set 'textContent'/'innerHTML' safely."
+                ),
+                rule_name="JS_DOCUMENT_WRITE",
+                rule_type="Security",
+            )
+        )
 
     # ── Rule: JS_SWITCH_FALLTHROUGH ──────────────────────────────────
 
@@ -321,7 +334,10 @@ class JavaScriptSemanticAnalyzer:
         # Iterate all cases except the last one (which has nothing to fall through to)
         for i in range(len(cases) - 1):
             current_case = cases[i]
-            if not isinstance(current_case, dict) or current_case.get("type") != "SwitchCase":
+            if (
+                not isinstance(current_case, dict)
+                or current_case.get("type") != "SwitchCase"
+            ):
                 continue
 
             consequent = current_case.get("consequent", [])
@@ -334,14 +350,16 @@ class JavaScriptSemanticAnalyzer:
                 test_node = current_case.get("test")
                 case_label = "case" if test_node else "default case"
 
-                issues.append(self._make_issue(
-                    line_number=self._get_line(current_case),
-                    severity="Medium",
-                    description=(
-                        f"Switch fallthrough: this {case_label} falls through to the next "
-                        "case without a terminal statement (break, return, throw, continue). "
-                        "If intentional, refactor to make it explicit; otherwise, add a break statement."
-                    ),
-                    rule_name="JS_SWITCH_FALLTHROUGH",
-                    rule_type="Bugs",
-                ))
+                issues.append(
+                    self._make_issue(
+                        line_number=self._get_line(current_case),
+                        severity="Medium",
+                        description=(
+                            f"Switch fallthrough: this {case_label} falls through to the next "
+                            "case without a terminal statement (break, return, throw, continue). "
+                            "If intentional, refactor to make it explicit; otherwise, add a break statement."
+                        ),
+                        rule_name="JS_SWITCH_FALLTHROUGH",
+                        rule_type="Bugs",
+                    )
+                )

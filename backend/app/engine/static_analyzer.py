@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, List
+
+from .c_memory_analyzer import CMemoryAnalyzer
 from .cpp_analyzer import CppLifetimeAnalyzer
 from .java_analyzer import JavaSemanticAnalyzer
-from .c_memory_analyzer import CMemoryAnalyzer
-from .python_analyzer import PythonSemanticAnalyzer
 from .js_analyzer import JavaScriptSemanticAnalyzer
+from .python_analyzer import PythonSemanticAnalyzer
 from .ts_analyzer import TypeScriptSemanticAnalyzer
 
 
@@ -169,7 +170,7 @@ class StaticAnalyzer:
         language: Java, Python, C, C++, JavaScript, TypeScript.
         """
         issues = []
-        
+
         # Run specialized C++ lifetime analyzer
         if language == "C++":
             cpp_analyzer = CppLifetimeAnalyzer()
@@ -199,24 +200,28 @@ class StaticAnalyzer:
         if language == "TypeScript":
             ts_analyzer = TypeScriptSemanticAnalyzer()
             issues.extend(ts_analyzer.analyze(code))
-            
+
         # Normalize analyzer input (CRLF/CR -> LF, remove BOM)
-        normalized_code = code.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff")
-        
+        normalized_code = (
+            code.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff")
+        )
+
         for rule in self.rules:
             if "ALL" in rule.languages or language in rule.languages:
                 # Search across the entire normalized string to support multiline rules like LARGE_CLASS
                 matches = list(rule.pattern.finditer(normalized_code))
-                
+
                 # Only report if threshold is met
-                if len(matches) >= getattr(rule, 'threshold', 1):
-                    if getattr(rule, 'aggregate', False):
+                if len(matches) >= getattr(rule, "threshold", 1):
+                    if getattr(rule, "aggregate", False):
                         # Aggregate all matches into a single issue
                         line_numbers = []
                         for match in matches:
-                            line_number = normalized_code.count("\n", 0, match.start()) + 1
+                            line_number = (
+                                normalized_code.count("\n", 0, match.start()) + 1
+                            )
                             line_numbers.append(str(line_number))
-                        
+
                         issues.append(
                             {
                                 "severity": rule.severity,
@@ -228,7 +233,9 @@ class StaticAnalyzer:
                     else:
                         for match in matches:
                             # Calculate line number by counting newlines before the match
-                            line_number = normalized_code.count("\n", 0, match.start()) + 1
+                            line_number = (
+                                normalized_code.count("\n", 0, match.start()) + 1
+                            )
                             issues.append(
                                 {
                                     "severity": rule.severity,

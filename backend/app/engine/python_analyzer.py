@@ -4,15 +4,22 @@ Deterministic Python Semantic Analyzer for CodePilot.
 Uses Python's built-in `ast` module for whole-source semantic analysis.
 Detects correctness and security defects that regex-based rules cannot catch.
 """
+
 from __future__ import annotations
 
 import ast
 from typing import Any, Dict, List
 
 # Mutable constructor names that produce mutable objects when called with no args
-_MUTABLE_CONSTRUCTORS = frozenset({
-    "list", "dict", "set", "bytearray", "OrderedDict",
-})
+_MUTABLE_CONSTRUCTORS = frozenset(
+    {
+        "list",
+        "dict",
+        "set",
+        "bytearray",
+        "OrderedDict",
+    }
+)
 
 
 class PythonSemanticAnalyzer:
@@ -91,17 +98,19 @@ class PythonSemanticAnalyzer:
         """Check if a single default value is a mutable literal or constructor."""
         mutable_type = self._get_mutable_type(default)
         if mutable_type:
-            issues.append(self._make_issue(
-                line_number=default.lineno,
-                severity="High",
-                description=(
-                    f"Mutable default argument in function '{func_name}': "
-                    f"default value {mutable_type} is shared across all calls. "
-                    f"Use None as sentinel and create the mutable inside the function body."
-                ),
-                rule_name="PY_MUTABLE_DEFAULT_ARG",
-                rule_type="Bugs",
-            ))
+            issues.append(
+                self._make_issue(
+                    line_number=default.lineno,
+                    severity="High",
+                    description=(
+                        f"Mutable default argument in function '{func_name}': "
+                        f"default value {mutable_type} is shared across all calls. "
+                        f"Use None as sentinel and create the mutable inside the function body."
+                    ),
+                    rule_name="PY_MUTABLE_DEFAULT_ARG",
+                    rule_type="Bugs",
+                )
+            )
 
     @staticmethod
     def _get_mutable_type(node: ast.expr) -> str | None:
@@ -159,13 +168,15 @@ class PythonSemanticAnalyzer:
                 "logic or safe alternatives."
             )
 
-        issues.append(self._make_issue(
-            line_number=node.lineno,
-            severity="Critical",
-            description=desc,
-            rule_name=f"PY_DANGEROUS_{func_name.upper()}",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=node.lineno,
+                severity="Critical",
+                description=desc,
+                rule_name=f"PY_DANGEROUS_{func_name.upper()}",
+                rule_type="Security",
+            )
+        )
 
     # ── Rule: PY_OS_SYSTEM_INJECTION ─────────────────────────────────
 
@@ -192,7 +203,11 @@ class PythonSemanticAnalyzer:
             # Check for shell=True
             has_shell_true = False
             for kw in node.keywords:
-                if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                if (
+                    kw.arg == "shell"
+                    and isinstance(kw.value, ast.Constant)
+                    and kw.value.value is True
+                ):
                     has_shell_true = True
                     break
             if has_shell_true:
@@ -210,7 +225,7 @@ class PythonSemanticAnalyzer:
                 if kw.arg in ("args", "cmd"):
                     command_arg = kw.value
                     break
-        
+
         if not command_arg:
             return
 
@@ -225,17 +240,19 @@ class PythonSemanticAnalyzer:
             if all(isinstance(elt, ast.Constant) for elt in command_arg.elts):
                 return
 
-        issues.append(self._make_issue(
-            line_number=node.lineno,
-            severity="Critical",
-            description=(
-                f"Dangerous OS command execution: using '{module_name}.{method_name}' "
-                f"with dynamic arguments can lead to command injection vulnerabilities. "
-                f"Use the 'subprocess' module with a list of arguments and 'shell=False'."
-            ),
-            rule_name="PY_OS_SYSTEM_INJECTION",
-            rule_type="Security",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=node.lineno,
+                severity="Critical",
+                description=(
+                    f"Dangerous OS command execution: using '{module_name}.{method_name}' "
+                    f"with dynamic arguments can lead to command injection vulnerabilities. "
+                    f"Use the 'subprocess' module with a list of arguments and 'shell=False'."
+                ),
+                rule_name="PY_OS_SYSTEM_INJECTION",
+                rule_type="Security",
+            )
+        )
 
     # ── Rule: PY_BROAD_EXCEPTION ─────────────────────────────────────
 
@@ -261,7 +278,10 @@ class PythonSemanticAnalyzer:
         # Check if catching a tuple of exceptions
         elif isinstance(node.type, ast.Tuple):
             for elt in node.type.elts:
-                if isinstance(elt, ast.Name) and elt.id in ("Exception", "BaseException"):
+                if isinstance(elt, ast.Name) and elt.id in (
+                    "Exception",
+                    "BaseException",
+                ):
                     is_broad = True
                     exception_name = elt.id
                     break
@@ -275,17 +295,19 @@ class PythonSemanticAnalyzer:
                 # An explicit re-raise found; suppress the finding
                 return
 
-        issues.append(self._make_issue(
-            line_number=node.lineno,
-            severity="High",
-            description=(
-                f"Catch-all exception handling: catching '{exception_name}' broadly "
-                f"masks programming errors and runtime issues. If necessary, explicitly "
-                f"re-raise using 'raise' or catch more specific exception types."
-            ),
-            rule_name="PY_BROAD_EXCEPTION",
-            rule_type="Bugs",
-        ))
+        issues.append(
+            self._make_issue(
+                line_number=node.lineno,
+                severity="High",
+                description=(
+                    f"Catch-all exception handling: catching '{exception_name}' broadly "
+                    f"masks programming errors and runtime issues. If necessary, explicitly "
+                    f"re-raise using 'raise' or catch more specific exception types."
+                ),
+                rule_name="PY_BROAD_EXCEPTION",
+                rule_type="Bugs",
+            )
+        )
 
     # ── Rule: PY_IS_LITERAL_COMPARISON ───────────────────────────────
 
@@ -297,8 +319,8 @@ class PythonSemanticAnalyzer:
         """Detect identity comparison (is / is not) against non-singleton literals."""
         # AST represents comparisons like `x is 0` as:
         # ast.Compare(left=ast.Name(id='x'), ops=[ast.Is()], comparators=[ast.Constant(value=0)])
-        
-        for op, comparator in zip(node.ops, node.comparators):
+
+        for op, comparator in zip(node.ops, node.comparators, strict=False):
             if not isinstance(op, (ast.Is, ast.IsNot)):
                 continue
 
@@ -308,9 +330,13 @@ class PythonSemanticAnalyzer:
             if isinstance(comparator, ast.Constant):
                 # None, True, False are safe singletons to compare with 'is'
                 # Use identity check ('is') since 0 == False in Python
-                if comparator.value is not None and comparator.value is not True and comparator.value is not False:
+                if (
+                    comparator.value is not None
+                    and comparator.value is not True
+                    and comparator.value is not False
+                ):
                     literal_type = repr(comparator.value)
-            
+
             # Check for collection literals: [], {}, ()
             elif isinstance(comparator, ast.List):
                 literal_type = "[]"
@@ -323,17 +349,19 @@ class PythonSemanticAnalyzer:
 
             if literal_type is not None:
                 op_name = "is not" if isinstance(op, ast.IsNot) else "is"
-                issues.append(self._make_issue(
-                    line_number=node.lineno,
-                    severity="Medium",
-                    description=(
-                        f"Identity comparison with literal: using '{op_name}' with {literal_type}. "
-                        f"Identity checks compare memory addresses, not values. "
-                        f"Use '==' or '!=' for equality comparison."
-                    ),
-                    rule_name="PY_IS_LITERAL_COMPARISON",
-                    rule_type="Bugs",
-                ))
+                issues.append(
+                    self._make_issue(
+                        line_number=node.lineno,
+                        severity="Medium",
+                        description=(
+                            f"Identity comparison with literal: using '{op_name}' with {literal_type}. "
+                            f"Identity checks compare memory addresses, not values. "
+                            f"Use '==' or '!=' for equality comparison."
+                        ),
+                        rule_name="PY_IS_LITERAL_COMPARISON",
+                        rule_type="Bugs",
+                    )
+                )
 
     # ── Rule: PY_NESTED_LOOP_COMPLEXITY ──────────────────────────────
 
@@ -379,13 +407,15 @@ class PythonSemanticAnalyzer:
                 )
                 severity = "Medium"
 
-            issues.append(self._make_issue(
-                line_number=node.lineno,
-                severity=severity,
-                description=desc,
-                rule_name="PY_NESTED_LOOP_COMPLEXITY",
-                rule_type="Performance",
-            ))
+            issues.append(
+                self._make_issue(
+                    line_number=node.lineno,
+                    severity=severity,
+                    description=desc,
+                    rule_name="PY_NESTED_LOOP_COMPLEXITY",
+                    rule_type="Performance",
+                )
+            )
 
     def _find_loop_nesting_depth(self, node: ast.AST) -> int:
         """Return the maximum loop nesting depth starting from (and including) node.
@@ -399,7 +429,7 @@ class PythonSemanticAnalyzer:
 
         max_child_depth = 0
         # Walk only direct children in the loop body (and orelse)
-        for child_list in (node.body, getattr(node, 'orelse', [])):
+        for child_list in (node.body, getattr(node, "orelse", [])):
             for child in child_list:
                 depth = self._max_loop_depth_in_subtree(child)
                 if depth > max_child_depth:
@@ -434,14 +464,12 @@ class PythonSemanticAnalyzer:
         that checks method names without dataflow analysis.
         """
         # Known database query execution method names (fetch* methods removed to avoid false positives)
-        db_execute_methods = frozenset({
-            "execute", "executemany", "executescript"
-        })
+        db_execute_methods = frozenset({"execute", "executemany", "executescript"})
 
         # Common variable names indicating a database connection or cursor
-        db_receiver_names = frozenset({
-            "cursor", "cur", "conn", "connection", "db", "session", "engine", "client"
-        })
+        db_receiver_names = frozenset(
+            {"cursor", "cur", "conn", "connection", "db", "session", "engine", "client"}
+        )
 
         # Walk the loop body looking for Call nodes with matching method names
         query_calls = []
@@ -455,24 +483,33 @@ class PythonSemanticAnalyzer:
             if isinstance(func, ast.Attribute) and func.attr in db_execute_methods:
                 is_db_call = False
                 receiver = func.value
-                
+
                 # 1. Check receiver name (e.g., cursor.execute, self.db.execute)
                 receiver_name = ""
                 if isinstance(receiver, ast.Attribute):
                     receiver_name = receiver.attr
                 elif isinstance(receiver, ast.Name):
                     receiver_name = receiver.id
-                    
-                if receiver_name.lower() in db_receiver_names or "sql" in receiver_name.lower():
+
+                if (
+                    receiver_name.lower() in db_receiver_names
+                    or "sql" in receiver_name.lower()
+                ):
                     is_db_call = True
-                
+
                 # 2. Check arguments for SQL-like string literals
                 if not is_db_call and child.args:
                     first_arg = child.args[0]
-                    if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                    if isinstance(first_arg, ast.Constant) and isinstance(
+                        first_arg.value, str
+                    ):
                         val = first_arg.value.strip().upper()
-                        if val.startswith("SELECT ") or val.startswith("UPDATE ") or \
-                           val.startswith("INSERT ") or val.startswith("DELETE "):
+                        if (
+                            val.startswith("SELECT ")
+                            or val.startswith("UPDATE ")
+                            or val.startswith("INSERT ")
+                            or val.startswith("DELETE ")
+                        ):
                             is_db_call = True
 
                 if is_db_call:
@@ -481,23 +518,25 @@ class PythonSemanticAnalyzer:
         if query_calls:
             loop_type = "for" if isinstance(node, ast.For) else "while"
             count = len(query_calls)
-            line_numbers = sorted(set(str(c.lineno) for c in query_calls))
+            line_numbers = sorted({str(c.lineno) for c in query_calls})
 
-            issues.append(self._make_issue(
-                line_number=node.lineno,
-                severity="High",
-                description=(
-                    f"Potential N+1 query pattern: {count} database query "
-                    f"call(s) detected inside a '{loop_type}' loop "
-                    f"(query lines: {', '.join(line_numbers)}). "
-                    f"Each loop iteration may execute a separate database query, "
-                    f"leading to O(n) queries instead of a single batch query. "
-                    f"Consider using bulk queries, JOINs, or preloading data "
-                    f"before the loop."
-                ),
-                rule_name="PY_N_PLUS_1_QUERY",
-                rule_type="Performance",
-            ))
+            issues.append(
+                self._make_issue(
+                    line_number=node.lineno,
+                    severity="High",
+                    description=(
+                        f"Potential N+1 query pattern: {count} database query "
+                        f"call(s) detected inside a '{loop_type}' loop "
+                        f"(query lines: {', '.join(line_numbers)}). "
+                        f"Each loop iteration may execute a separate database query, "
+                        f"leading to O(n) queries instead of a single batch query. "
+                        f"Consider using bulk queries, JOINs, or preloading data "
+                        f"before the loop."
+                    ),
+                    rule_name="PY_N_PLUS_1_QUERY",
+                    rule_type="Performance",
+                )
+            )
 
     # ── Helpers ───────────────────────────────────────────────────────
 

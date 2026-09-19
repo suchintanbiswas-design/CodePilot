@@ -23,6 +23,7 @@ class RegisterRequest(BaseModel):
             raise ValueError("Password must be at least 8 characters")
         return v
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -33,6 +34,7 @@ class LoginRequest(BaseModel):
         if isinstance(v, str):
             return v.strip()
         return v
+
 
 class TokenResponse(BaseModel):
     access_token: str

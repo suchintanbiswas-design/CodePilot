@@ -1,8 +1,6 @@
 from uuid import UUID
 
 
-
-
 class ReportService:
     def __init__(self):
         pass
@@ -161,6 +159,7 @@ class ReportService:
     ) -> bytes:
         cache_key = f"report:{review_id}:{report_type}"
         from app.config.redis import _redis_client
+
         # try to get from redis
         if _redis_client:
             cached = await _redis_client.get(cache_key)
@@ -177,6 +176,7 @@ class ReportService:
 
     async def invalidate_report_cache(self, review_id: UUID):
         from app.config.redis import _redis_client
+
         if _redis_client:
             for report_type in ["pdf", "html"]:
                 cache_key = f"report:{review_id}:{report_type}"
